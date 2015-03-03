@@ -1,6 +1,8 @@
 {-# LANGUAGE TypeOperators #-}
 import Control.Monad.State
 import qualified Data.Array.Repa as R
+import qualified Data.Array.Repa.Eval             as R
+import qualified Data.Array.Repa.Unsafe           as R
 import System.Random
 
 import Ray
@@ -74,6 +76,63 @@ calcHemispherePoint :: Int -> Int -> DoubleVector -> DoubleVector
 calcHemispherePoint = undefined
             
             
-            
-            
+calcNorm =undefined 
+
+
+
+randVec:: doubleVector -> Int -> Int -> IO doubleVector
+randVec v r1 r2 = do
+    yRot <- mmultP  (R.fromListUnboxed (R.ix1 3) [1,0,0])(R.fromListUnboxed (R.ix3 3 3 3) [cos r1, 0, sin r1
+                                             ,0,1,0
+                                             ,-sin r1,0,cos r1]) 
+    let yzRot = mmultP (R.fromListUnboxed (R.ix3 3 3 3) [cos r2, -sin r2, 0
+                        ,sin r2,cos r2,0
+                        ,0,0,0]) yRot
+    
+    let yzRotNorm = calcNorm yzRot   
+    let xAngle = acos ((v R.!(R.Z R.:. 0)))
+    let yAngle = acos (0)
+    let zAngle = acos (0)
+    rotYyzRotNorm <- mmultP (R.fromListUnboxed (R.ix3 3 3 3) [cos yAngle, 0, sin yAngle
+                                                        ,(0,1,0)
+                                                        ,-sin yAngle,0,cos yAngle]) yzRotNorm
+    rotYZyzRotNorm <-  mmultP (R.fromListUnboxed (R.ix3 3 3 3) [cos zAngle, -sin zAngle, 0
+                                                          ,sin zAngle,cos zAngle,0
+                                                          ,0,0,0]) rotYyzRotNorm
+    rotYZXyzRotNorm   <- mmultP (R.fromListUnboxed (R.ix3 3 3 3) [1,0,0
+                                                     ,0,cos xAngle,-sin xAngle
+                                                     ,0,sin xAngle,cos xAngle]) rotYZyzRotNorm
+                                                     
+    return rotYZXyzRotNorm                                                
+
+
+mmultP  :: Monad m => R.Array R.U R.DIM2 Double -> R.Array R.U R.DIM2 Double -> m (R.Array R.U R.DIM2 Double)
+
+mmultP arr brr 
+ = [arr, brr] `R.deepSeqArrays` 
+   do   trr      <- transpose2P brr
+        let (R.Z R.:. h1  R.:. _)  = R.extent arr
+        let (R.Z R.:. _   R.:. w2) = R.extent brr
+        R.computeP 
+         $ R.fromFunction (R.Z R.:. h1 R.:. w2)
+         $ \ix   -> R.sumAllS 
+                  $ R.zipWith (*)
+                        (R.unsafeSlice arr (R.Any R.:. (row ix) R.:. R.All))
+                        (R.unsafeSlice trr (R.Any R.:. (col ix) R.:. R.All))
+
+
+transpose2P:: Monad m => R.Array R.U R.DIM2 Double -> m (R.Array R.U R.DIM2 Double)
+
+transpose2P arr = arr `R.deepSeqArray`
+   do   R.computeUnboxedP 
+         $ R.unsafeBackpermute new_extent swap arr
+ where  swap (R.Z R.:. i R.:. j)      = R.Z R.:. j R.:. i
+        new_extent              = swap (R.extent arr)     
+
+
+row :: R.DIM2 -> Int
+row (R.Z R.:. r R.:. _) = r 
+
+col :: R.DIM2 -> Int
+col (R.Z R.:. _ R.:. c) = c       
             
