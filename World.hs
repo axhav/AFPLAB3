@@ -15,6 +15,7 @@ data Object = Object {
                     ,color :: Color
                     ,reflectance :: Double
                     }
+    deriving (Show)
 
 
 data Sphere = Sphere {
