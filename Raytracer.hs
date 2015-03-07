@@ -57,7 +57,7 @@ dummyWorld = [-- Object{shape =dummySphere
 
 
 dummyVec1 :: DoubleVector
-dummyVec1 = R.fromListUnboxed (R.ix1 3) [1,0,0,0]
+dummyVec1 = R.fromListUnboxed (R.ix1 3) [1,1,1]
 
 
 dummyVec2 :: DoubleVector
@@ -142,8 +142,87 @@ calcNorm =undefined
 
 
 
-randVec:: DoubleVector -> Double -> Double ->  Double -> IO DoubleVector
-randVec v r1 r2 r3 = do
+
+randVec:: DoubleVector ->  Double -> StdGen -> IO DoubleVector
+randVec v spawnFrustum randG = do
+                    --randG <- getStdGen
+                    --calculate the length of "Normal" in the XY-plane
+                    let lengthxy = (v R.! (R.Z R.:. 0)) * (v R.! (R.Z R.:. 0)) + (v R.! (R.Z R.:. 1)) * (v R.! (R.Z R.:. 1)) -- sqared length                    
+                    let alphaxy = 0
+                    lengthxy2 <- alphaxyAng v lengthxy
+                   
+                    --calculate the length of "Normal" in the XZ-plane
+                    let lengthxz = (v R.! (R.Z R.:. 0)) * (v R.! (R.Z R.:. 0)) + (v R.! (R.Z R.:. 2)) * (v R.! (R.Z R.:. 2)) -- sqared length
+                    alphaxz <- alphaxzAng v lengthxz
+                    
+
+
+
+                    let vector_x = (R.fromListUnboxed (R.ix2 1 4) [1,0,0,1])            
+                    -- pick angle and make rotation matrix
+                    let (rand',randG2) = randomR (-1000,1000) randG -- <- undefined
+                    let rand = (rand'/1000)::Double
+                    let tempRand = rand * spawnFrustum - spawnFrustum/2
+
+
+                     --pick a new angle and make another rotation matrix
+                    -- rot z
+                    let mat = (R.fromListUnboxed (R.ix2 4 4)[cos(tempRand),0-sin(tempRand),0, 0,               
+                                                                sin(tempRand), cos(tempRand), 0, 0,
+                                                                0,0,1,0,
+                                                                0,0,0,1])                
+
+                    vector_x2 <- mmultP vector_x mat
+                    let (rand2',_) = randomR (-1000,1000) randG2 -- <- undefined
+                    let rand2 = rand2'/1000
+                    let tempRand2 = rand2 * (2::Double) * (3.14::Double) - (3.14::Double)
+                     -- rot x
+                    let mat2 = (R.fromListUnboxed (R.ix2 4 4) [1,0,0,0,                                                
+                                                          0, cos(tempRand2), 0-sin(tempRand2),0,
+                                                          0, sin(tempRand2), cos(tempRand2),0,
+                                                          0,0,0,1])
+                                                        
+                    
+                    vector_x3 <- mmultP vector_x2 mat
+
+
+                    let mat3 = R.fromListUnboxed (R.ix2 4 4) [cos(alphaxy), 0-sin(alphaxy), 0, 0,                 -- //rot z
+                                                sin(alphaxy),cos(alphaxy), 0, 0,
+                                                0, 0, 1, 0,
+                                                0, 0, 0, 1]
+                                                
+                    vector_x4 <- mmultP vector_x3  mat3;
+
+                    let mat4 =  R.fromListUnboxed (R.ix2 4 4)[
+                              cos(alphaxz), 0, sin(alphaxz), 0,
+                              0, 1, 0, 0,
+                              0-sin(alphaxz), 0, cos(alphaxz), 0,
+                              0, 0, 0, 1]
+                                
+                    vector_x5 <- mmultP vector_x4 mat4
+                    
+                    return $ R.fromListUnboxed (R.ix1 3) [ (vector_x5 R.! (R.Z R.:. 0 R.:. 0))/(vector_x5 R.! (R.Z R.:. 0 R.:. 3)) ,(vector_x5 R.! (R.Z R.:. 0 R.:. 1))/(vector_x5 R.! (R.Z R.:. 0 R.:. 3)),(vector_x5 R.! (R.Z R.:. 0 R.:. 2))/(vector_x5 R.! (R.Z R.:. 0 R.:. 3))] 
+    where 
+        alphaxyAng:: DoubleVector -> Double -> IO Double
+        alphaxyAng v a = case a == 0 of
+                True -> return (0.0::Double)
+                False -> do 
+                           let lengthxy2 = sqrt(a) -- real length
+                           --calculate the angle between the x-axis and "Normal" in the XY-plane
+                           let alphaxy = asin((v R.! (R.Z R.:. 2) / lengthxy2))
+                           return alphaxy
+        alphaxzAng:: DoubleVector -> Double -> IO Double
+        alphaxzAng v a =
+                   case a == 0 of
+                        True -> return (0.0) -- 90 degrees
+                            
+                        False ->  do
+                            let lengthxz = sqrt(a) -- real length
+                            -- calculate the angle between the x-axis and "Normal" in the XZ-plane
+                            let alphaxz = asin((v R.! (R.Z R.:. 2)) / lengthxz) -- sin alpha = z / hypotenuse
+                            return alphaxz
+{-
+
     yRot <- mmultP  (R.fromListUnboxed (R.ix2 1 3) [1,0,0]) (R.fromListUnboxed (R.ix2 3 3) [cos r2, 0, sin r2
                                                             ,0,1,0
                                                             ,-sin r2,0,cos r2]) 
@@ -155,6 +234,7 @@ randVec v r1 r2 r3 = do
                                                              ,0,cos r1,-sin r1
                                                              ,0,sin r1,cos r1])
     
+<<<<<<< HEAD
     let yzRotNormOx = R.fromListUnboxed (R.ix1 3) [(v R.! (R.Z R.:. 0)),0,0]
     let yzRotNormOy = R.fromListUnboxed (R.ix1 3) [0,(v R.! (R.Z R.:. 1)),0]
     let yzRotNormOz = R.fromListUnboxed (R.ix1 3) [0,0,(v R.! (R.Z R.:. 2))]
@@ -165,6 +245,18 @@ randVec v r1 r2 r3 = do
     let yAngle = acos y
     let zAngle = acos z
     rotYyzRotNorm <- mmultP xyzRotNorm (R.fromListUnboxed (R.ix2 3 3) [cos yAngle, 0, sin yAngle
+=======
+    let yzRotNormOx = R.fromListUnboxed (R.ix1 3) [0,(v R.! (R.Z R.:. 1)),(v R.! (R.Z R.:. 2))]
+    let yzRotNormOy = R.fromListUnboxed (R.ix1 3) [(v R.! (R.Z R.:. 0)),0,(v R.! (R.Z R.:. 2))]
+    let yzRotNormOz = R.fromListUnboxed (R.ix1 3) [(v R.! (R.Z R.:. 0)),(v R.! (R.Z R.:. 1)),0]
+    x <- (dotProd (R.fromListUnboxed (R.ix1 3) [1,0,0]) yzRotNormOx)
+    y <- (dotProd (R.fromListUnboxed (R.ix1 3) [0,1,0]) yzRotNormOy)
+    z <- (dotProd (R.fromListUnboxed (R.ix1 3) [0,0,1]) yzRotNormOz)
+    let xAngle = acos (v R.! (R.Z R.:. 0))
+    let yAngle = acos (v R.! (R.Z R.:. 1))
+    let zAngle = acos (v R.! (R.Z R.:. 2))
+    rotYyzRotNorm <- mmultP xyzRotNorm (R.fromListUnboxed (R.ix2    3 3) [cos yAngle, 0, sin yAngle
+>>>>>>> ea186f519461cf822cf79c874663dc07456aa21f
                                                         ,0,1,0
                                                         ,-sin yAngle,0,cos yAngle])
     rotYZyzRotNorm <-  mmultP rotYyzRotNorm (R.fromListUnboxed (R.ix2 3 3) [cos zAngle, -sin zAngle, 0
@@ -176,10 +268,10 @@ randVec v r1 r2 r3 = do
                                                     
     
                                                      
-    return $ R.fromListUnboxed (R.ix1 3) [(rotYZXyzRotNorm R.! (R.Z R.:. 0 R.:. 0)) ,(rotYZXyzRotNorm R.! (R.Z R.:. 0 R.:. 1)),(rotYZXyzRotNorm R.! (R.Z R.:. 0 R.:. 2))]                                        
-        where
-            zeroVec = R.fromListUnboxed (R.ix1 3) [0,0,0]
-
+    return $ R.fromListUnboxed (R.ix1 3) [xAngle,yAngle,zAngle]                                        
+        --where
+            --zeroVec = R.fromListUnboxed (R.ix1 3) [0,0,0]
+-}
 mmultP  :: R.Array R.U R.DIM2 Double -> R.Array R.U R.DIM2 Double -> IO (R.Array R.U R.DIM2 Double)
 
 mmultP arr brr 
