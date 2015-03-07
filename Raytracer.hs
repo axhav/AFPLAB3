@@ -140,8 +140,24 @@ calcHemispherePoint a b v = randVec v (toRad a) (toRad b) (toRad b)
             
 calcNorm =undefined 
 
+rotMatX :: Double -> R.Array R.U R.DIM2 Double
+rotMatX angle =(R.fromListUnboxed (R.ix2 4 4) [
+                                               1, 0        ,0             ,0,                                                
+                                               0, cos(angle), 0-sin(angle),0,
+                                               0, sin(angle), cos(angle)  ,0,
+                                               0, 0         , 0           ,1
+                                              ])
+{-
+rotMatY :: (Data.Vector.Unboxed.Base.Unbox a, Floating a) => a -> R.Array R.U R.DIM2 a
+rotMatY angle =
+-}
 
 
+rotMatZ :: Double -> R.Array R.U R.DIM2 Double
+rotMatZ angle =(R.fromListUnboxed (R.ix2 4 4) [cos(angle), 0-sin(angle), 0, 0,
+                                              sin(angle),cos(angle), 0, 0,
+                                              0, 0, 1, 0,
+                                              0, 0, 0, 1])
 
 randVec:: DoubleVector ->  Double -> StdGen -> IO DoubleVector
 randVec v spawnFrustum randG = do
@@ -177,19 +193,13 @@ randVec v spawnFrustum randG = do
                     let rand2 = rand2'/1000
                     let tempRand2 = rand2 * (2::Double) * (3.14::Double) - (3.14::Double)
                      -- rot x
-                    let mat2 = (R.fromListUnboxed (R.ix2 4 4) [1,0,0,0,                                                
-                                                          0, cos(tempRand2), 0-sin(tempRand2),0,
-                                                          0, sin(tempRand2), cos(tempRand2),0,
-                                                          0,0,0,1])
+                    let mat2 = rotMatX tempRand2
                                                         
                     
                     vector_x3 <- mmultP vector_x2 mat
 
 
-                    let mat3 = R.fromListUnboxed (R.ix2 4 4) [cos(alphaxy), 0-sin(alphaxy), 0, 0,                 -- //rot z
-                                                sin(alphaxy),cos(alphaxy), 0, 0,
-                                                0, 0, 1, 0,
-                                                0, 0, 0, 1]
+                    let mat3 = rotMatZ alphaxy
                                                 
                     vector_x4 <- mmultP vector_x3  mat3;
 
