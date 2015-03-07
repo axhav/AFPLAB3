@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeOperators #-}
 import Control.Monad.State
-import qualified Data.Array.Repa as R
+import qualified Data.Array.Repa                  as R
 import qualified Data.Array.Repa.Eval             as R
 import qualified Data.Array.Repa.Unsafe           as R
 import Data.Array.Repa.IO.BMP
@@ -30,10 +30,10 @@ dummySphere2 = Sphere {
             
 dummyWorld :: World
 dummyWorld = [ Object{shape =dummySphere
-             , color=(R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
+             , color= (255,0,0) --(R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
              ,reflectance = 0}
              , Object{shape =dummySphere2
-             , color=(R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
+             , color=(255,255,255) -- (R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
              ,reflectance = 0}]
 
 
@@ -45,23 +45,24 @@ dummyVec1 = R.fromListUnboxed (R.ix1 4) [0,0,0,0]
 dummyVec2 :: DoubleVector
 dummyVec2 = R.fromListUnboxed (R.ix1 4) [5,0,0,0]
 
-{-
+
 main :: IO ()
 main = do
+    let w = dummyWorld 
+    col <- trace dummyWorld dummyRay 0
+    let image = R.fromListUnboxed (R.ix2 100 100) [ col | x <- [1..100], y <- [1..100]] 
     
-    
-    writeImageToBMP "./test.bmp" 
--}
+    writeImageToBMP ("./test.bmp") image
 
 --                 
 trace :: World -> Ray -> Depth -> IO Color
 trace w r@Ray{dir = dir, point = pnt} d = do
     case d of
-        5 -> return $ R.fromListUnboxed (R.ix1 4) [0,0,0,0]     -- byt 5an till dynamisk?
+        5 -> return $ (0,0,0)     -- byt 5an till dynamisk?
         _ -> do 
             test <-intersectWorld r w 
             case test of
-                Nothing -> return $ R.fromListUnboxed (R.ix1 4) [0,0,0,0]
+                Nothing -> return $ (0,0,0)
                 (Just (obj,hitp)) -> do
                     let emittance = color obj
                     rand <- getStdGen
@@ -72,15 +73,17 @@ trace w r@Ray{dir = dir, point = pnt} d = do
                     cos_theta <- dotProd newDir norm
                     let brdf = 2 * (reflectance obj) * cos_theta
                     reflCol <- trace w (Ray{dir=newDir, point = hitp}) (d+1)
-                    return $ R.computeUnboxedS $ 
+                    return $ calcFinalCol emittance reflCol brdf
+                    
+                    {-$ R.computeUnboxedS $ 
                         R.zipWith (+) emittance $
-                        calcReflCol brdf reflCol
+                        calcReflCol brdf reflCol-}
                     
                  
             
-calcReflCol :: Double -> Color -> Color
-calcReflCol b rc = R.computeUnboxedS$ R.map round $ R.map (b*) $ R.map fromIntegral rc
-
+calcFinalCol :: Color -> Color -> Double ->Color
+calcFinalCol (er,eg,eb) (rr,rg,rb) brf = (calc er rr,calc eg rg,calc eb rb)  --R.computeUnboxedS$ R.map round $ R.map (b*) $ R.map fromIntegral rc
+    where calc a b = a + round (brf * fromIntegral b)
 calcHemispherePoint :: Int -> Int -> DoubleVector -> DoubleVector
 calcHemispherePoint = undefined
             
