@@ -39,7 +39,7 @@ dummyWorld = [ Object{shape =dummySphere
 
 
 dummyVec1 :: DoubleVector
-dummyVec1 = R.fromListUnboxed (R.ix1 3) [1,0,0]
+dummyVec1 = R.fromListUnboxed (R.ix1 3) [1,1,1]
 
 
 dummyVec2 :: DoubleVector
@@ -93,9 +93,9 @@ calcNorm =undefined
 
 
 
-randVec:: DoubleVector ->  Double -> IO DoubleVector
-randVec v spawnFrustum = do
-
+randVec:: DoubleVector ->  Double -> StdGen -> IO DoubleVector
+randVec v spawnFrustum randG = do
+                    --randG <- getStdGen
                     --calculate the length of "Normal" in the XY-plane
                     let lengthxy = (v R.! (R.Z R.:. 0)) * (v R.! (R.Z R.:. 0)) + (v R.! (R.Z R.:. 1)) * (v R.! (R.Z R.:. 1)) -- sqared length                    
                     let alphaxy = 0
@@ -108,9 +108,10 @@ randVec v spawnFrustum = do
 
 
 
-                    let vector_x = (R.fromListUnboxed (R.ix2 1 4) [1,0,0,0])            
+                    let vector_x = (R.fromListUnboxed (R.ix2 1 4) [1,0,0,1])            
                     -- pick angle and make rotation matrix
-                    let rand =1 -- <- undefined
+                    let (rand',randG2) = randomR (-1000,1000) randG -- <- undefined
+                    let rand = (rand'/1000)::Double
                     let tempRand = rand * spawnFrustum - spawnFrustum/2
 
 
@@ -122,7 +123,8 @@ randVec v spawnFrustum = do
                                                                 0,0,0,1])                
 
                     vector_x2 <- mmultP vector_x mat
-                    let rand2 = 1 -- <- undefined
+                    let (rand2',_) = randomR (-1000,1000) randG2 -- <- undefined
+                    let rand2 = rand2'/1000
                     let tempRand2 = rand2 * (2::Double) * (3.14::Double) - (3.14::Double)
                      -- rot x
                     let mat2 = (R.fromListUnboxed (R.ix2 4 4) [1,0,0,0,                                                
@@ -146,10 +148,10 @@ randVec v spawnFrustum = do
                               0, 1, 0, 0,
                               0-sin(alphaxz), 0, cos(alphaxz), 0,
                               0, 0, 0, 1]
-                              
+                                
                     vector_x5 <- mmultP vector_x4 mat4
                     
-                    return $ R.fromListUnboxed (R.ix1 3) [ vector_x5 R.! (R.Z R.:. 0 R.:. 0) ,vector_x5 R.! (R.Z R.:. 0 R.:. 1),vector_x5 R.! (R.Z R.:. 0 R.:. 2)] 
+                    return $ R.fromListUnboxed (R.ix1 3) [ (vector_x5 R.! (R.Z R.:. 0 R.:. 0))/(vector_x5 R.! (R.Z R.:. 0 R.:. 3)) ,(vector_x5 R.! (R.Z R.:. 0 R.:. 1))/(vector_x5 R.! (R.Z R.:. 0 R.:. 3)),(vector_x5 R.! (R.Z R.:. 0 R.:. 2))/(vector_x5 R.! (R.Z R.:. 0 R.:. 3))] 
     where 
         alphaxyAng:: DoubleVector -> Double -> IO Double
         alphaxyAng v a = case a == 0 of
