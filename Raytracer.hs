@@ -39,7 +39,7 @@ dummyWorld = [ Object{shape =dummySphere
 
 
 dummyVec1 :: DoubleVector
-dummyVec1 = R.fromListUnboxed (R.ix1 4) [0,0,0,0]
+dummyVec1 = R.fromListUnboxed (R.ix1 3) [1,0,0,0]
 
 
 dummyVec2 :: DoubleVector
@@ -92,33 +92,45 @@ calcNorm =undefined
 
 
 
-randVec:: doubleVector -> Double -> Double -> IO doubleVector
-randVec v r1 r2 = do
-    yRot <- mmultP  (R.fromListUnboxed (R.ix2 3 3) [cos r1, 0, sin r1
-                                             ,0,1,0
-                                             ,-sin r1,0,cos r1]) (R.fromListUnboxed (R.ix2 3 1) [1,0,0])
-    let yzRot = mmultP (R.fromListUnboxed (R.ix2 3 3) [cos r2, -sin r2, 0
-                        ,sin r2,cos r2,0
-                        ,0,0,0]) yRot
+randVec:: DoubleVector -> Double -> Double ->  Double -> IO DoubleVector
+randVec v r1 r2 r3 = do
+    yRot <- mmultP  (R.fromListUnboxed (R.ix2 1 3) [1,0,0]) (R.fromListUnboxed (R.ix2 3 3) [cos r2, 0, sin r2
+                                                            ,0,1,0
+                                                            ,-sin r2,0,cos r2]) 
+    zRot <- mmultP yRot (R.fromListUnboxed (R.ix2 3 3) [cos r3, -sin r3, 0
+                                                        ,sin r3,cos r3,0
+                                                        ,0,0,0]) 
     
-    let yzRotNorm = calcNorm yzRot   
-    let xAngle = acos ((v R.!(R.Z R.:. 0)))
-    let yAngle = acos (0)
-    let zAngle = acos (0)
-    rotYyzRotNorm <- mmultP (R.fromListUnboxed (R.ix2    3 3) [cos yAngle, 0, sin yAngle
+    xyzRotNorm  <- mmultP zRot (R.fromListUnboxed (R.ix2 3 3) [1,0,0
+                                                             ,0,cos r1,-sin r1
+                                                             ,0,sin r1,cos r1])
+    
+    let yzRotNormOx = R.fromListUnboxed (R.ix1 3) [(v R.! (R.Z R.:. 0) ),0,0]
+    let yzRotNormOy = R.fromListUnboxed (R.ix1 3) [0,(v R.! (R.Z R.:. 1)),0]
+    let yzRotNormOz = R.fromListUnboxed (R.ix1 3) [0,0,(v R.! (R.Z R.:. 2))]
+    x <- (dotProd yzRotNormOx  (R.fromListUnboxed (R.ix1 3) [1,0,0]))
+    y <- (dotProd yzRotNormOy  (zeroVec))
+    z <- (dotProd yzRotNormOz  (zeroVec))
+    let xAngle = acos x
+    let yAngle = acos y
+    let zAngle = acos z
+    rotYyzRotNorm <- mmultP xyzRotNorm (R.fromListUnboxed (R.ix2    3 3) [cos yAngle, 0, sin yAngle
                                                         ,0,1,0
-                                                        ,-sin yAngle,0,cos yAngle]) yzRotNorm
-    rotYZyzRotNorm <-  mmultP (R.fromListUnboxed (R.ix2 3 3) [cos zAngle, -sin zAngle, 0
+                                                        ,-sin yAngle,0,cos yAngle])
+    rotYZyzRotNorm <-  mmultP rotYyzRotNorm (R.fromListUnboxed (R.ix2 3 3) [cos zAngle, -sin zAngle, 0
                                                           ,sin zAngle,cos zAngle,0
-                                                          ,0,0,0]) rotYyzRotNorm
-    rotYZXyzRotNorm   <- mmultP (R.fromListUnboxed (R.ix2 3 3) [1,0,0
+                                                          ,0,0,0])
+    rotYZXyzRotNorm <- mmultP rotYZyzRotNorm (R.fromListUnboxed (R.ix2 3 3) [1,0,0
                                                      ,0,cos xAngle,-sin xAngle
-                                                     ,0,sin xAngle,cos xAngle]) rotYZyzRotNorm
+                                                     ,0,sin xAngle,cos xAngle])
+                                                    
+    
                                                      
-    return rotYZXyzRotNorm                                                
+    return $ R.fromListUnboxed (R.ix1 3) [(rotYZXyzRotNorm R.! (R.Z R.:. 0 R.:. 0)) ,(rotYZXyzRotNorm R.! (R.Z R.:. 0 R.:. 1)),(rotYZXyzRotNorm R.! (R.Z R.:. 0 R.:. 2))]                                        
+        where
+            zeroVec = R.fromListUnboxed (R.ix1 3) [0,0,0]
 
-
-mmultP  :: Monad m => R.Array R.U R.DIM2 Double -> R.Array R.U R.DIM2 Double -> m (R.Array R.U R.DIM2 Double)
+mmultP  :: R.Array R.U R.DIM2 Double -> R.Array R.U R.DIM2 Double -> IO (R.Array R.U R.DIM2 Double)
 
 mmultP arr brr 
  = [arr, brr] `R.deepSeqArrays` 
@@ -133,7 +145,7 @@ mmultP arr brr
                         (R.unsafeSlice trr (R.Any R.:. (col ix) R.:. R.All))
 
 
-transpose2P:: Monad m => R.Array R.U R.DIM2 Double -> m (R.Array R.U R.DIM2 Double)
+transpose2P::R.Array R.U R.DIM2 Double -> IO (R.Array R.U R.DIM2 Double)
 
 transpose2P arr = arr `R.deepSeqArray`
    do   R.computeUnboxedP 
