@@ -80,12 +80,12 @@ calcNorm =undefined
 
 
 
-randVec:: doubleVector -> Int -> Int -> IO doubleVector
+randVec:: doubleVector -> Double -> Double -> IO doubleVector
 randVec v r1 r2 = do
-    yRot <- mmultP  (R.fromListUnboxed (R.ix1 3) [1,0,0])(R.fromListUnboxed (R.ix3 3 3 3) [cos r1, 0, sin r1
+    yRot <- mmultP  (R.fromListUnboxed (R.ix2 3 3) [cos r1, 0, sin r1
                                              ,0,1,0
-                                             ,-sin r1,0,cos r1]) 
-    let yzRot = mmultP (R.fromListUnboxed (R.ix3 3 3 3) [cos r2, -sin r2, 0
+                                             ,-sin r1,0,cos r1]) (R.fromListUnboxed (R.ix2 3 1) [1,0,0])
+    let yzRot = mmultP (R.fromListUnboxed (R.ix2 3 3) [cos r2, -sin r2, 0
                         ,sin r2,cos r2,0
                         ,0,0,0]) yRot
     
@@ -93,13 +93,13 @@ randVec v r1 r2 = do
     let xAngle = acos ((v R.!(R.Z R.:. 0)))
     let yAngle = acos (0)
     let zAngle = acos (0)
-    rotYyzRotNorm <- mmultP (R.fromListUnboxed (R.ix3 3 3 3) [cos yAngle, 0, sin yAngle
-                                                        ,(0,1,0)
+    rotYyzRotNorm <- mmultP (R.fromListUnboxed (R.ix2    3 3) [cos yAngle, 0, sin yAngle
+                                                        ,0,1,0
                                                         ,-sin yAngle,0,cos yAngle]) yzRotNorm
-    rotYZyzRotNorm <-  mmultP (R.fromListUnboxed (R.ix3 3 3 3) [cos zAngle, -sin zAngle, 0
+    rotYZyzRotNorm <-  mmultP (R.fromListUnboxed (R.ix2 3 3) [cos zAngle, -sin zAngle, 0
                                                           ,sin zAngle,cos zAngle,0
                                                           ,0,0,0]) rotYyzRotNorm
-    rotYZXyzRotNorm   <- mmultP (R.fromListUnboxed (R.ix3 3 3 3) [1,0,0
+    rotYZXyzRotNorm   <- mmultP (R.fromListUnboxed (R.ix2 3 3) [1,0,0
                                                      ,0,cos xAngle,-sin xAngle
                                                      ,0,sin xAngle,cos xAngle]) rotYZyzRotNorm
                                                      
