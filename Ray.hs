@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeOperators #-}
 module Ray (
-Depth, Color , Ray (..), intersectB,intersectWorld,intersectP
+Depth , Ray (..), intersectB,intersectWorld,intersectP
 ) where
 
 import World
@@ -10,7 +10,7 @@ import Control.Monad.State
 
 
 type Depth = Int
-type Color = DoubleVector
+
 
 type Arr = R.Array R.U (R.Z R.:. Int R.:. Int) Int 
 

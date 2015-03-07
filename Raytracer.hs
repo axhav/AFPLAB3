@@ -3,6 +3,7 @@ import Control.Monad.State
 import qualified Data.Array.Repa as R
 import qualified Data.Array.Repa.Eval             as R
 import qualified Data.Array.Repa.Unsafe           as R
+import Data.Array.Repa.IO.BMP
 import System.Random
 
 import Ray
@@ -44,6 +45,13 @@ dummyVec1 = R.fromListUnboxed (R.ix1 4) [0,0,0,0]
 dummyVec2 :: DoubleVector
 dummyVec2 = R.fromListUnboxed (R.ix1 4) [5,0,0,0]
 
+{-
+main :: IO ()
+main = do
+    
+    
+    writeImageToBMP "./test.bmp" 
+-}
 
 --                 
 trace :: World -> Ray -> Depth -> IO Color
@@ -66,11 +74,12 @@ trace w r@Ray{dir = dir, point = pnt} d = do
                     reflCol <- trace w (Ray{dir=newDir, point = hitp}) (d+1)
                     return $ R.computeUnboxedS $ 
                         R.zipWith (+) emittance $
-                        R.computeUnboxedS$ R.map (brdf*) reflCol
+                        calcReflCol brdf reflCol
                     
                  
             
-            
+calcReflCol :: Double -> Color -> Color
+calcReflCol b rc = R.computeUnboxedS$ R.map round $ R.map (b*) $ R.map fromIntegral rc
 
 calcHemispherePoint :: Int -> Int -> DoubleVector -> DoubleVector
 calcHemispherePoint = undefined

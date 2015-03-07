@@ -1,17 +1,18 @@
 {-# LANGUAGE TypeOperators #-}
 module World (
-World, Object(..), Sphere (..),sphereNormal
+World,Color, Object(..), Sphere (..),sphereNormal
 
 ) where
 import qualified Data.Array.Repa as R
 import Vector
+import Data.Word
 
-
+type Color =  R.Array R.U (R.Z R.:. Int) Word8
 type World = [Object]
 
 data Object = Object {
                     shape :: Sphere
-                    ,color :: DoubleVector
+                    ,color :: Color
                     ,reflectance :: Double
                     }
 
