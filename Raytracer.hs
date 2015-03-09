@@ -69,7 +69,7 @@ dummyWorld = [Object{shape =dummyPlane
 
 
 dummyVec1 :: DoubleVector
-dummyVec1 = R.fromListUnboxed (R.ix1 3) [1,1,1]
+dummyVec1 = R.fromListUnboxed (R.ix1 3) [1,0,0]
 
 
 dummyVec2 :: DoubleVector
@@ -154,34 +154,47 @@ calcFinalCol (er,eg,eb) (rr,rg,rb) brf = (calc er rr,calc eg rg,calc eb rb)  --R
 
 rotMatX :: Double -> R.Array R.U R.DIM2 Double
 rotMatX angle =(R.fromListUnboxed (R.ix2 4 4) [
-                                               1, 0        ,0             ,0,                                                
-                                               0, cos(angle), 0-sin(angle),0,
-                                               0, sin(angle), cos(angle)  ,0,
-                                               0, 0         , 0           ,1
+                                               1.0, 0.0        ,0.0             ,0.0,                                                
+                                               0.0, cos(angle)::Double, (0.0-sin(angle))::Double,0.0,
+                                               0.0, sin(angle)::Double, cos(angle)::Double  ,0.0,
+                                               0, 0         , 0.0           ,1.0
                                               ])
 
 rotMatY :: Double -> R.Array R.U R.DIM2 Double
 rotMatY angle = R.fromListUnboxed (R.ix2 4 4)[
-                              cos(angle), 0, sin(angle), 0,
-                              0, 1, 0, 0,
-                              0-sin(angle), 0, cos(angle), 0,
-                              0, 0, 0, 1]
+                              cos(angle)::Double, 0.0, sin(angle)::Double, 0.0,
+                              0.0, 1.0, 0.0, 0.0,
+                              (0.0-sin(angle))::Double, 0.0, cos(angle)::Double, 0.0,
+                              0.0, 0.0, 0.0, 1.0]
 
 
 
 rotMatZ :: Double -> R.Array R.U R.DIM2 Double
-rotMatZ angle =(R.fromListUnboxed (R.ix2 4 4) [cos(angle), 0-sin(angle), 0, 0,
-                                              sin(angle),cos(angle), 0, 0,
-                                              0, 0, 1, 0,
-                                              0, 0, 0, 1])
+rotMatZ angle =(R.fromListUnboxed (R.ix2 4 4) [cos(angle)::Double, (0.0-sin(angle))::Double, 0.0, 0.0,
+                                              sin(angle)::Double,cos(angle)::Double, 0.0, 0.0,
+                                              0.0, 0.0, 1.0, 0.0,
+                                              0.0, 0.0, 0.0, 1.0])
 
+                                              
+                                              
+testRandVec::DoubleVector ->  Double -> StdGen -> IO ()
+testRandVec v frustum gen = do
+                                let gen'=snd (next gen)
+                                
+                                temp <- randVec v frustum gen'
+                                
+                                let temp2=vLength temp
+                                
+                                putStrLn $ show (temp) ++"   " ++ show(temp2)
+                                testRandVec v frustum gen'
+                                               
 randVec:: DoubleVector ->  Double -> StdGen -> IO DoubleVector
 randVec v spawnFrustum randG = do
                     --randG <- getStdGen
                     --calculate the length of "Normal" in the XY-plane
                     let lengthxy = (v R.! (R.Z R.:. 0)) * (v R.! (R.Z R.:. 0)) + (v R.! (R.Z R.:. 1)) * (v R.! (R.Z R.:. 1)) -- sqared length                    
-                    let alphaxy = 0
-                    lengthxy2 <- alphaxyAng v lengthxy
+                    --let alphaxy = 0
+                    alphaxy <- alphaxyAng v lengthxy
                    
                     --calculate the length of "Normal" in the XZ-plane
                     let lengthxz = (v R.! (R.Z R.:. 0)) * (v R.! (R.Z R.:. 0)) + (v R.! (R.Z R.:. 2)) * (v R.! (R.Z R.:. 2)) -- sqared length
@@ -194,21 +207,21 @@ randVec v spawnFrustum randG = do
                     -- pick angle and make rotation matrix
                     let (rand',randG2) = randomR (-1000,1000) randG -- <- undefined
                     let rand = (rand'/1000)::Double
-                    let tempRand = rand * spawnFrustum - spawnFrustum/2
+                    let tempRand = (rand * spawnFrustum) - (spawnFrustum/2)
 
 
                      --pick a new angle and make another rotation matrix
                     -- rot z
-                    let mat = rotMatZ tempRand               
+                    let mat = rotMatZ tempRand
 
                     vector_x2 <- mmultP vector_x mat
                     let (rand2',_) = randomR (-1000,1000) randG2 -- <- undefined
                     let rand2 = rand2'/(1000.0)
-                    let tempRand2 = rand2 * (2::Double) * (3.14::Double) - (3.14::Double)
+                    let tempRand2 = rand2 * (2::Double) * (3.14::Double)
                      -- rot x
                     let mat2 = rotMatX tempRand2
 
-                    vector_x3 <- mmultP vector_x2 mat
+                    vector_x3 <- mmultP vector_x2 mat2
 
                     let mat3 = rotMatZ alphaxy
                                                 
@@ -225,7 +238,7 @@ randVec v spawnFrustum randG = do
                 False -> do 
                            let lengthxy2 = sqrt(a) -- real length
                            --calculate the angle between the x-axis and "Normal" in the XY-plane
-                           let alphaxy = asin((v R.! (R.Z R.:. 2) / lengthxy2))
+                           let alphaxy = asin(((v R.! (R.Z R.:. 1)) / lengthxy2))
                            return alphaxy
         alphaxzAng:: DoubleVector -> Double -> IO Double
         alphaxzAng v a =
