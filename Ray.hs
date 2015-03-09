@@ -37,7 +37,7 @@ intersectWorld ray@Ray{dir = d, point= o} w = do
             return $ Just (objs !! index , intp !! index) 
             
 intersectP :: Ray -> Object -> IO DoubleVector
-intersectP ray@Ray{dir=d , point=o} obj@Object{shape=s@Sphere{position=c, radius = r}} = do
+intersectP ray@Ray{dir=d , point=o} obj@Object{shape=s@Sphere{spos=c, radius = r}} = do
     let d' = normalize d
     loc <- (dotProd d' $ R.computeUnboxedS $ R.zipWith (-) o c)
     let p = - loc
@@ -50,10 +50,15 @@ intersectP ray@Ray{dir=d , point=o} obj@Object{shape=s@Sphere{position=c, radius
         False ->do
             --putStrLn $ show  (p+q1)
             return $ R.computeUnboxedS $ R.map ((p+q1)*) d'
-    
+intersectP ray@Ray{dir=d , point=o} obj@Object{shape=s@Plane{ppos=c, pnormal = n}} = do
+    let d' = normalize d
+    denum <- dotProd d' n  
+    let sub = R.computeUnboxedS $ R.zipWith (-) c o
+    l' <- dotProd sub n
+    return $ R.computeUnboxedS $ R.map ((l'/denum)*) d'
 
 intersectB :: Ray -> Object -> IO Bool
-intersectB ray@Ray{dir=d , point=o} obj@Object{shape = s@Sphere{position=c, radius = r}} = do 
+intersectB ray@Ray{dir=d , point=o} obj@Object{shape = s@Sphere{spos=c, radius = r}} = do 
     let sub' = R.computeUnboxedS $ R.zipWith (-) o c
     let d' = normalize d
     s1' <- (dotProd d' sub')
@@ -63,7 +68,13 @@ intersectB ray@Ray{dir=d , point=o} obj@Object{shape = s@Sphere{position=c, radi
     case (s1-s2 + (r*r)) > 0 of
         False -> return False
         True -> return True
-    {-
+intersectB ray@Ray{dir=d , point=o} obj@Object{shape = s@Plane{ppos=c, pnormal = n}} = do 
+    let d' = normalize d
+    s1 <- (dotProd d' n)
+    case s1 /= 0  of
+        False -> return False
+        True -> return True   
+        {-
     fstcheck <- dotProd sub' d'
     putStrLn $ show fstcheck
     case fstcheck < 0 of
@@ -75,5 +86,4 @@ intersectB ray@Ray{dir=d , point=o} obj@Object{shape = s@Sphere{position=c, radi
             case sndcheck > 0 of
                 True -> return True
                 False -> return False
-
 -}

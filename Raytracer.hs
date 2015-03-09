@@ -29,27 +29,33 @@ dummyRay = Ray { dir =  R.fromListUnboxed (R.ix1 3) [5,2.1,0]
                 ,point = R.fromListUnboxed (R.ix1 3) [0,0,0]
                }
                 
-dummySphere :: Sphere
+dummySphere :: Shape
 dummySphere = Sphere {
-                position =  R.fromListUnboxed (R.ix1 3) [10,0,0] 
+                spos =  R.fromListUnboxed (R.ix1 3) [10,0,0] 
                 ,radius = 1.0
             }
             
-dummySphere2 :: Sphere
+dummySphere2 :: Shape
 dummySphere2 = Sphere {
-                position =  R.fromListUnboxed (R.ix1 3) [5,0,0] 
+                spos =  R.fromListUnboxed (R.ix1 3) [5,0,0] 
                 ,radius = 2.0
             }
 
+dummyPlane :: Shape
+dummyPlane = Plane {
+                ppos =  R.fromListUnboxed (R.ix1 3) [0,-2,0] 
+                ,pnormal = R.fromListUnboxed (R.ix1 3) [0,1,0]
+            }
+            
 dummyObj = Object{shape =dummySphere2
              , color=(0,255,0) -- (R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
              ,reflectance = 0}
            
             
 dummyWorld :: World
-dummyWorld = [-- Object{shape =dummySphere
-             --, color= (255,0,0) --(R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
-             --,reflectance = 0}
+dummyWorld = [Object{shape =dummyPlane
+             , color= (255,0,0) --(R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
+             ,reflectance = 100},
              Object{shape =dummySphere2
              , color=(0,255,0) -- (R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
              ,reflectance = 0}]
