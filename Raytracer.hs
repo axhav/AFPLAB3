@@ -63,12 +63,12 @@ dummyVec1 = R.fromListUnboxed (R.ix1 3) [1,1,1]
 dummyVec2 :: DoubleVector
 dummyVec2 = R.fromListUnboxed (R.ix1 4) [20,1,0,0]
 
-cameraRay :: Camera-> Int -> Int -> Ray
-cameraRay r@Camera{cdir = dir, cpoint = pnt, cup =u} x y =
+cameraRay :: Camera->(Int, Int) ->Int -> Int -> Ray
+cameraRay r@Camera{cdir = dir, cpoint = pnt, cup =u} (maxX',maxY') x y =
      Ray{dir= ( R.computeUnboxedS( R.zipWith (-) imagePoint pnt)), point = pnt}
         where cam_right = crossProd dir u
-              maxX = 200
-              maxY = 200
+              maxX = (fromIntegral maxX' )
+              maxY = (fromIntegral maxY' )
               normX = ((fromIntegral x ) /maxX) -0.5
               normY =  ((fromIntegral y ) /maxY) -0.5
               imagePoint = (R.zipWith (+) (R.zipWith (+) (R.zipWith (+) (R.map (normX*) cam_right)
@@ -98,7 +98,7 @@ main = do
     let w = dummyWorld 
     let c = dummyCam
     --putStrLn $ show [(cameraRay2 c x y)| x <- [0..(widht-1)], y <- [0..(height-1)]]
-    ls <- sequence [ trace w (cameraRay c x y) 0 | x <- [0..(widht-1)], y <- [0..(height-1)]]
+    ls <- sequence [ trace w (cameraRay c (widht,height) x y) 0 | x <- [0..(widht-1)], y <- [0..(height-1)]]
     putStrLn $ "Trace is done creating image named " ++ show path
     let image = R.fromListUnboxed (R.ix2 widht height) ls
     writeImageToBMP ("./"++path) image
@@ -117,10 +117,8 @@ trace w r@Ray{dir = dir, point = pnt} d = do
                     --putStrLn $ "hit"
                     let emittance = color obj
                     rand <- getStdGen
-                    let randInt = next rand 
-                    let randInt2 = fst $ next (snd randInt)
                     let norm = sphereNormal (shape obj) hitp
-                    newDir <-  calcHemispherePoint (fst randInt) randInt2 norm
+                    newDir <-  randVec norm 3.14 rand 
                     cos_theta <- dotProd newDir norm
                     let brdf = 2 * (reflectance obj) * cos_theta
                     --putStrLn $ show newDir
@@ -133,12 +131,6 @@ calcFinalCol :: Color -> Color -> Double ->Color
 calcFinalCol (er,eg,eb) (rr,rg,rb) brf = (calc er rr,calc eg rg,calc eb rb)  --R.computeUnboxedS$ R.map round $ R.map (b*) $ R.map fromIntegral rc
     where calc a b = a + round (brf * fromIntegral b)
 
-    
-calcHemispherePoint :: Int -> Int -> DoubleVector -> IO DoubleVector
-calcHemispherePoint a b v = randVec v (toRad a) (toRad b) (toRad b) 
-    where toRad deg = 2.0*3.14 *( (fromIntegral deg)/180.0)
-           
-calcNorm =undefined 
 
 rotMatX :: Double -> R.Array R.U R.DIM2 Double
 rotMatX angle =(R.fromListUnboxed (R.ix2 4 4) [
