@@ -137,7 +137,7 @@ calcFinalCol (er,eg,eb) (rr,rg,rb) brf = (calc er rr,calc eg rg,calc eb rb)  --R
 calcHemispherePoint :: Int -> Int -> DoubleVector -> IO DoubleVector
 calcHemispherePoint a b v = randVec v (toRad a) (toRad b) (toRad b) 
     where toRad deg = 2.0*3.14 *( (fromIntegral deg)/180.0)
-            
+           
 calcNorm =undefined 
 
 rotMatX :: Double -> R.Array R.U R.DIM2 Double
@@ -147,10 +147,14 @@ rotMatX angle =(R.fromListUnboxed (R.ix2 4 4) [
                                                0, sin(angle), cos(angle)  ,0,
                                                0, 0         , 0           ,1
                                               ])
-{-
-rotMatY :: (Data.Vector.Unboxed.Base.Unbox a, Floating a) => a -> R.Array R.U R.DIM2 a
-rotMatY angle =
--}
+
+rotMatY :: Double -> R.Array R.U R.DIM2 Double
+rotMatY angle = R.fromListUnboxed (R.ix2 4 4)[
+                              cos(angle), 0, sin(angle), 0,
+                              0, 1, 0, 0,
+                              0-sin(angle), 0, cos(angle), 0,
+                              0, 0, 0, 1]
+
 
 
 rotMatZ :: Double -> R.Array R.U R.DIM2 Double
@@ -183,32 +187,22 @@ randVec v spawnFrustum randG = do
 
                      --pick a new angle and make another rotation matrix
                     -- rot z
-                    let mat = (R.fromListUnboxed (R.ix2 4 4)[cos(tempRand),0-sin(tempRand),0, 0,               
-                                                                sin(tempRand), cos(tempRand), 0, 0,
-                                                                0,0,1,0,
-                                                                0,0,0,1])                
+                    let mat = rotMatZ tempRand               
 
                     vector_x2 <- mmultP vector_x mat
                     let (rand2',_) = randomR (-1000,1000) randG2 -- <- undefined
-                    let rand2 = rand2'/1000
+                    let rand2 = rand2'/(1000.0)
                     let tempRand2 = rand2 * (2::Double) * (3.14::Double) - (3.14::Double)
                      -- rot x
                     let mat2 = rotMatX tempRand2
-                                                        
-                    
-                    vector_x3 <- mmultP vector_x2 mat
 
+                    vector_x3 <- mmultP vector_x2 mat
 
                     let mat3 = rotMatZ alphaxy
                                                 
                     vector_x4 <- mmultP vector_x3  mat3;
 
-                    let mat4 =  R.fromListUnboxed (R.ix2 4 4)[
-                              cos(alphaxz), 0, sin(alphaxz), 0,
-                              0, 1, 0, 0,
-                              0-sin(alphaxz), 0, cos(alphaxz), 0,
-                              0, 0, 0, 1]
-                                
+                    let mat4 = rotMatY alphaxz
                     vector_x5 <- mmultP vector_x4 mat4
                     
                     return $ R.fromListUnboxed (R.ix1 3) [ (vector_x5 R.! (R.Z R.:. 0 R.:. 0))/(vector_x5 R.! (R.Z R.:. 0 R.:. 3)) ,(vector_x5 R.! (R.Z R.:. 0 R.:. 1))/(vector_x5 R.! (R.Z R.:. 0 R.:. 3)),(vector_x5 R.! (R.Z R.:. 0 R.:. 2))/(vector_x5 R.! (R.Z R.:. 0 R.:. 3))] 
