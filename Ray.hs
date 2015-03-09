@@ -43,7 +43,7 @@ intersectP ray@Ray{dir=d , point=o} obj@Object{shape=s@Sphere{spos=c, radius = r
     let p = - loc
     let q1 = sqrt ((loc*loc) - ((dist o c)*(dist o c)) + (r*r))
     let q2 = -(sqrt $ (loc*loc) - ((dist o c)*(dist o c)) + (r*r))
-    case ((p + q1) < (p + q2)) of
+    case ((p + q1) > (p + q2)) of
         True  -> do
             --putStrLn $ show (p+q2)
             return $ R.computeUnboxedS $ R.map ((p+q2)*) d'
@@ -73,7 +73,12 @@ intersectB ray@Ray{dir=d , point=o} obj@Object{shape = s@Plane{ppos=c, pnormal =
     s1 <- (dotProd d' n)
     case s1 /= 0  of
         False -> return False
-        True -> return True   
+        True -> do
+            let sub = R.computeUnboxedS $ R.zipWith (-) c o
+            l' <- dotProd sub n
+            case (l'/s1) > 0 of
+                False -> return False
+                True -> return True   
         {-
     fstcheck <- dotProd sub' d'
     putStrLn $ show fstcheck

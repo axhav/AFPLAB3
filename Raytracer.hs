@@ -43,7 +43,7 @@ dummySphere2 = Sphere {
 
 dummyPlane :: Shape
 dummyPlane = Plane {
-                ppos =  R.fromListUnboxed (R.ix1 3) [0,-2,0] 
+                ppos =  R.fromListUnboxed (R.ix1 3) [0,-1,0] 
                 ,pnormal = R.fromListUnboxed (R.ix1 3) [0,1,0]
             }
 
@@ -64,6 +64,9 @@ dummyWorld = [Object{shape =dummyPlane
              ,reflectance = 0},
              Object{shape =dummyPlane2
              , color=(0,255,0) -- (R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
+             ,reflectance = 0},
+             Object{shape =dummySphere
+             , color=(0,0,255) -- (R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
              ,reflectance = 0}]
 
 
@@ -91,8 +94,8 @@ cameraRay2 r@Camera{cdir = dir, cpoint = pnt, cup =up} (maxX',maxY') x y =
      Ray{dir= normalize( R.computeUnboxedS(R.zipWith (+) pnt imagePoint)), point = pnt}  
             where u = crossProd dir up
                   v = crossProd u dir
-                  halfWidth = 100
-                  halfHeight = 100
+                  halfWidth = 400
+                  halfHeight = 400
                   viewPlaneHalfWith = tan (90.0/2.0)
                   aspectRatio = 1
                   viewPlaneHalfHeight = viewPlaneHalfWith * aspectRatio
@@ -107,7 +110,7 @@ cameraRay3 r@Camera{cdir = dir, cpoint = pnt, cup =up} (maxX,maxY) x y =
             where cr = crossProd dir up
                   cu = crossProd cr dir
                   dist =(0.5 / (tan (90.0/2.0)))
-                  pixelDir = (R.zipWith (+) (R.zipWith (+) (R.map (dist*) dir) (R.map ((0.5 - (fromIntegral y)/( fromIntegral(maxY -1)))*) cu) ) (R.map ((0.5 - (fromIntegral x)/( fromIntegral(maxX -1)))*) cr))
+                  pixelDir = (R.zipWith (+) (R.zipWith (+) (R.map (dist*) dir) (R.map ((0.5 - (fromIntegral y)/( fromIntegral(maxY -1)))*) cr) ) (R.map ((0.5 - (fromIntegral x)/( fromIntegral(maxX -1)))*) cu))
                   
 main :: IO ()
 main = do
@@ -118,7 +121,7 @@ main = do
     let w = dummyWorld 
     let c = dummyCam
     --putStrLn $ show [(cameraRay2 c x y)| x <- [0..(widht-1)], y <- [0..(height-1)]]
-    ls <- sequence [ trace w (cameraRay3 c (widht,height) x y) 0 | x <- [0..(widht-1)], y <- [0..(height-1)]]
+    ls <- sequence [ trace w (cameraRay c (widht,height) x y) 0 | x <- [0..(widht-1)], y <- [0..(height-1)]]
     putStrLn $ "Trace is done creating image named " ++ show path
     let image = R.fromListUnboxed (R.ix2 widht height) ls
     writeImageToBMP ("./"++path) image
