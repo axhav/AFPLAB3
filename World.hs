@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeOperators #-}
 module World (
-World,Color, Object(..), Sphere (..),sphereNormal
+World,Color, Object(..), Sphere (..),calcNormal
 
 ) where
 import qualified Data.Array.Repa as R
@@ -24,6 +24,10 @@ data Sphere = Sphere {
         }
     deriving (Show)
 
+
+calcNormal :: Object -> DoubleVector -> DoubleVector
+calcNormal o@Object{shape =s@Sphere{position = pos}} pnt = sphereNormal s pnt
+    
 sphereNormal :: Sphere -> DoubleVector -> DoubleVector
 sphereNormal s@Sphere{position= pos} pnt = normalize $ R.computeUnboxedS $ R.zipWith (-) pos pnt
 

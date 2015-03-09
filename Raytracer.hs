@@ -117,7 +117,7 @@ trace w r@Ray{dir = dir, point = pnt} d = do
                     --putStrLn $ "hit"
                     let emittance = color obj
                     rand <- getStdGen
-                    let norm = sphereNormal (shape obj) hitp
+                    let norm = calcNormal obj hitp
                     newDir <-  randVec norm 3.14 rand 
                     cos_theta <- dotProd newDir norm
                     let brdf = 2 * (reflectance obj) * cos_theta
