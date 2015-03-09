@@ -8,13 +8,7 @@ import Vector
 import qualified Data.Array.Repa as R
 import Control.Monad.State
 
-
 type Depth = Int
-
-
-type Arr = R.Array R.U (R.Z R.:. Int R.:. Int) Int 
-
-
 
 data Ray = Ray {
                 dir :: DoubleVector
@@ -64,7 +58,6 @@ intersectB ray@Ray{dir=d , point=o} obj@Object{shape = s@Sphere{spos=c, radius =
     s1' <- (dotProd d' sub')
     let s1 = s1'*s1'
     let s2 = (vLength sub')*(vLength sub')
-    --putStrLn $ show (s1-s2 + (r*r))
     case (s1-s2 + (r*r)) > 0 of
         False -> return False
         True -> return True

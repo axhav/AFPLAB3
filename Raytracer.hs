@@ -61,10 +61,10 @@ dummyObj = Object{shape =dummySphere2
 dummyWorld :: World
 dummyWorld = [Object{shape =dummyPlane
              , color= (100,0,0) --(R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
-             ,reflectance = 0},
+             ,reflectance = 100},
              Object{shape =dummyPlane2
              , color=(0,255,0) -- (R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
-             ,reflectance = 0},
+             ,reflectance = 100},
              Object{shape =dummySphere
              , color=(0,0,255) -- (R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
              ,reflectance = 0}]
@@ -130,7 +130,7 @@ main = do
 trace :: World -> Ray -> Depth -> IO Color
 trace w r@Ray{dir = dir, point = pnt} d = do
     case d of
-        1 ->do
+        3 ->do
             return $ (0,0,0)     -- byt 5an till dynamisk?
         _ -> do 
             test <-intersectWorld r w 
