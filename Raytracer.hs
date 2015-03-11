@@ -160,7 +160,7 @@ rotMatX angle =(R.fromListUnboxed (R.ix2 4 4) [
                                                1.0, 0.0        ,0.0             ,0.0,                                                
                                                0.0, cos(angle)::Double, (0.0-sin(angle))::Double,0.0,
                                                0.0, sin(angle)::Double, cos(angle)::Double  ,0.0,
-                                               0, 0         , 0.0           ,1.0
+                                               0, 0.0         , 0.0           ,1.0
                                               ])
 
 rotMatY :: Double -> R.Array R.U R.DIM2 Double
@@ -175,8 +175,8 @@ rotMatY angle = R.fromListUnboxed (R.ix2 4 4)[
 rotMatZ :: Double -> R.Array R.U R.DIM2 Double
 rotMatZ angle =(R.fromListUnboxed (R.ix2 4 4) [cos(angle)::Double, (0.0-sin(angle))::Double, 0.0, 0.0,
                                               sin(angle)::Double,cos(angle)::Double, 0.0, 0.0,
-                                              0.0, 0.0, 1.0, 0.0,
-                                              0.0, 0.0, 0.0, 1.0])
+                                              0.0               ,0.0               ,1.0 , 0.0,
+                                              0.0               , 0.0              , 0.0, 1.0])
 
                                               
                                               
@@ -188,7 +188,7 @@ testRandVec v frustum gen = do
                                 
                                 let temp2=vLength temp
                                 
-                                putStrLn $ show (temp) ++"   " ++ show(temp2)
+                                --putStrLn $ show (temp) ++"   " ++ show(temp2)
                                 testRandVec v frustum gen'
                                                
 randVec:: DoubleVector ->  Double -> StdGen -> IO DoubleVector
@@ -198,7 +198,7 @@ randVec v spawnFrustum randG = do
                     let lengthxy = (v R.! (R.Z R.:. 0)) * (v R.! (R.Z R.:. 0)) + (v R.! (R.Z R.:. 1)) * (v R.! (R.Z R.:. 1)) -- sqared length                    
                     --let alphaxy = 0
                     alphaxy <- alphaxyAng v lengthxy
-                   
+                    
                     --calculate the length of "Normal" in the XZ-plane
                     let lengthxz = (v R.! (R.Z R.:. 0)) * (v R.! (R.Z R.:. 0)) + (v R.! (R.Z R.:. 2)) * (v R.! (R.Z R.:. 2)) -- sqared length
                     alphaxz <- alphaxzAng v lengthxz
@@ -208,32 +208,31 @@ randVec v spawnFrustum randG = do
 
                     let vector_x = (R.fromListUnboxed (R.ix2 1 4) [1,0,0,1])            
                     -- pick angle and make rotation matrix
-                    let (rand',randG2) = randomR (-1000,1000) randG -- <- undefined
+                    let (rand',randG2) = randomR (-1000,1000) randG
                     let rand = (rand'/1000)::Double
-                    let tempRand = (rand * spawnFrustum) - (spawnFrustum/2)
+                    let tempRand = (rand * spawnFrustum) - (spawnFrustum/2.0)::Double
 
 
-                     --pick a new angle and make another rotation matrix
+                    --pick a new angle and make another rotation matrix
                     -- rot z
                     let mat = rotMatZ tempRand
 
                     vector_x2 <- mmultP vector_x mat
-                    let (rand2',_) = randomR (-1000,1000) randG2 -- <- undefined
-                    let rand2 = rand2'/(1000.0)
-                    let tempRand2 = rand2 * (2::Double) * (3.14::Double)-(3.14::Double)
+                    let (rand2',_) = randomR (0,1000) randG2
+                    let rand2 = (rand2'/(1000.0))::Double
+                    let tempRand2 = (rand2 * (2::Double) * (pi::Double))-(pi::Double)
                      -- rot x
                     let mat2 = rotMatX tempRand2
 
                     vector_x3 <- mmultP vector_x2 mat2
-
-                    let mat3 = rotMatZ alphaxy
-                                                
-                    vector_x4 <- mmultP vector_x3  mat3;
-
-                    let mat4 = rotMatY alphaxz
-                    vector_x5 <- mmultP vector_x4 mat4
                     
-                    return $ R.fromListUnboxed (R.ix1 3) [ (vector_x5 R.! (R.Z R.:. 0 R.:. 0))/(vector_x5 R.! (R.Z R.:. 0 R.:. 3)) ,0.0-((vector_x5 R.! (R.Z R.:. 0 R.:. 1))/(vector_x5 R.! (R.Z R.:. 0 R.:. 3))),(vector_x5 R.! (R.Z R.:. 0 R.:. 2))/(vector_x5 R.! (R.Z R.:. 0 R.:. 3))] 
+                    mat4 <-mmultP (rotMatY alphaxz) (rotMatZ (0.0-alphaxy))     
+
+                    --vector_x4 <- mmultP vector_x3  mat3;
+
+                    vector_x5 <- mmultP vector_x3 mat4
+                    putStrLn $  (show vector_x5)                      
+                    return $ R.fromListUnboxed (R.ix1 3) [ (vector_x5 R.! (R.Z R.:. 0 R.:. 0))/(vector_x5 R.! (R.Z R.:. 0 R.:. 3)) ,((vector_x5 R.! (R.Z R.:. 0 R.:. 1))/(vector_x5 R.! (R.Z R.:. 0 R.:. 3))),(vector_x5 R.! (R.Z R.:. 0 R.:. 2))/(vector_x5 R.! (R.Z R.:. 0 R.:. 3))] 
     where 
         alphaxyAng:: DoubleVector -> Double -> IO Double
         alphaxyAng v a = case a == 0 of
@@ -241,8 +240,8 @@ randVec v spawnFrustum randG = do
                 False -> do 
                            let lengthxy2 = sqrt(a) -- real length
                            --calculate the angle between the x-axis and "Normal" in the XY-plane
-                           let alphaxy = asin(((v R.! (R.Z R.:. 1)) / lengthxy2))
-                           return alphaxy
+                           let r = asin(((v R.! (R.Z R.:. 1)) / lengthxy2)::Double)
+                           return r
         alphaxzAng:: DoubleVector -> Double -> IO Double
         alphaxzAng v a =
                    case a == 0 of
@@ -251,8 +250,8 @@ randVec v spawnFrustum randG = do
                         False ->  do
                             let lengthxz = sqrt(a) -- real length
                             -- calculate the angle between the x-axis and "Normal" in the XZ-plane
-                            let alphaxz = asin((v R.! (R.Z R.:. 2)) / lengthxz) -- sin alpha = z / hypotenuse
-                            return alphaxz
+                            let r1 = asin(((v R.! (R.Z R.:. 2)) / lengthxz)::Double) -- sin alpha = z / hypotenuse
+                            return r1
 {-
 
     yRot <- mmultP  (R.fromListUnboxed (R.ix2 1 3) [1,0,0]) (R.fromListUnboxed (R.ix2 3 3) [cos r2, 0, sin r2
