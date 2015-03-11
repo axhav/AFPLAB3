@@ -24,6 +24,11 @@ crossProd v1 v2 = R.fromListUnboxed (R.ix1 3)
                   ,((ind v1 0) *(ind v2 1)) -((ind v1 1) *(ind v2 0))]
     where ind v i = (v R.! (R.Z R.:. i) )
  
+ortho :: DoubleVector -> DoubleVector
+ortho v = case (v R.! (R.Z R.:. 0)) >(v R.! (R.Z R.:. 2)) of
+    True -> R.fromListUnboxed (R.ix1 3) [-(v R.! (R.Z R.:. 1)),v R.! (R.Z R.:. 0),0.0]
+    False ->  R.fromListUnboxed (R.ix1 3) [0.0,-(v R.! (R.Z R.:. 2)),v R.! (R.Z R.:. 1)]
+ 
 dist :: DoubleVector -> DoubleVector -> Double 
 dist v1 v2 = sqrt $ (pow2 0) + (pow2 1) + (pow2 2) 
     where pow2 i = (((v1 R.! (R.Z R.:. i) ) - (v2 R.! (R.Z R.:. i)))*((v1 R.! (R.Z R.:. i)) - (v2 R.! (R.Z R.:. i))))

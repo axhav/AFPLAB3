@@ -1,14 +1,18 @@
 {-# LANGUAGE TypeOperators #-}
 module World (
-World,Color, Object(..), Shape (..),calcNormal
-
+World(..),Color, Object(..), Shape (..),calcNormal,
+Light(..)
 ) where
 import qualified Data.Array.Repa as R
 import Vector
 import Data.Word
 
 type Color =  (Word8,Word8,Word8)--R.Array R.U (R.Z R.:. Int) Word8
-type World = [Object]
+data World = World {
+    items :: [Object]
+    ,lights :: [Light]
+    }
+    
 
 data Object = Object {
                     shape :: Shape
@@ -28,7 +32,12 @@ data Shape =
         }
     deriving (Show)
 
-
+data Light = Light{
+    lpos :: DoubleVector
+    ,lcolor:: Color
+    }
+    
+    
 calcNormal :: Object -> DoubleVector -> DoubleVector
 calcNormal o@Object{shape =s@Sphere{spos = pos}} pnt = sphereNormal s pnt
 calcNormal o@Object{shape =s@Plane{pnormal = norm}} _ = norm 

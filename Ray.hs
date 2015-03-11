@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeOperators #-}
 module Ray (
-Depth , Ray (..), intersectB,intersectWorld,intersectP
+Depth , Ray (..), intersectB,intersectWorld,intersectP,intersectLights
 ) where
 
 import World
@@ -19,7 +19,7 @@ data Ray = Ray {
 
 -- | Should back the first object that was intersected and the intersection point
 intersectWorld :: Ray -> World -> IO (Maybe (Object, DoubleVector))
-intersectWorld ray@Ray{dir = d, point= o} w = do
+intersectWorld ray@Ray{dir = d, point= o} w'@World{items = w} = do
     let r' = Ray{ dir = normalize d, point = o }
     objs <- filterM (\x -> intersectB r' x) w
     case objs of
@@ -29,7 +29,28 @@ intersectWorld ray@Ray{dir = d, point= o} w = do
             
             let index = findShortest o intp
             return $ Just (objs !! index , intp !! index) 
-            
+         
+intersectLights :: DoubleVector -> World -> IO Double 
+intersectLights hitp w@World{lights = []} = return 0
+intersectLights hitp w@World{items = o, lights = (l:ls)} = do
+    res <- intersectLight hitp w l
+    res2 <-intersectLights hitp (World{items = o , lights = ls})
+    return $ (res +res2) /(fromIntegral ( length ls +1))
+    
+intersectLight :: DoubleVector -> World -> Light -> IO Double
+intersectLight hitp w@World{items = o} l@Light{lpos = pos} = do
+    let direction = R.computeUnboxedS $ ( R.zipWith (-) pos hitp)
+    let dir'= normalize direction
+    obj <- intersectWorld Ray{point = hitp, dir = dir'} w
+    case obj of 
+        Nothing -> return 1.0
+        Just (obj,hitpoint) -> do
+            let llenght = vLength direction
+            let olenght = vLength $R.computeUnboxedS $ ( R.zipWith (-) hitp hitpoint)
+            case llenght > olenght of
+                True -> return 0.0
+                False -> return 1.0
+         
 intersectP :: Ray -> Object -> IO DoubleVector
 intersectP ray@Ray{dir=d , point=o} obj@Object{shape=s@Sphere{spos=c, radius = r}} = do
     let d' = normalize d

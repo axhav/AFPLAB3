@@ -1,10 +1,13 @@
 {-# LANGUAGE TypeOperators #-}
 import Control.Monad.State
+import Control.Applicative
+import System.IO.Unsafe
 import qualified Data.Array.Repa                  as R
 import qualified Data.Array.Repa.Eval             as R
 import qualified Data.Array.Repa.Unsafe           as R
 import Data.Array.Repa.IO.BMP
 import System.Random
+import Data.Word
 
 import Ray
 import World
@@ -31,13 +34,13 @@ dummyRay = Ray { dir =  R.fromListUnboxed (R.ix1 3) [5,2.1,0]
                 
 dummySphere :: Shape
 dummySphere = Sphere {
-                spos =  R.fromListUnboxed (R.ix1 3) [10,0,0] 
+                spos =  R.fromListUnboxed (R.ix1 3) [10,2,0] 
                 ,radius = 4.0
             }
             
 dummySphere2 :: Shape
 dummySphere2 = Sphere {
-                spos =  R.fromListUnboxed (R.ix1 3) [5,-3,0] 
+                spos =  R.fromListUnboxed (R.ix1 3) [5,-3,-3] 
                 ,radius = 2.0
             }
 
@@ -59,20 +62,26 @@ dummyObj = Object{shape =dummySphere2
            
             
 dummyWorld :: World
-dummyWorld = [Object{shape =dummyPlane
-             , color= (100,0,0) --(R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
-             ,reflectance = 100},
-             Object{shape =dummyPlane2
-             , color=(0,255,0) -- (R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
-             ,reflectance = 100},
+dummyWorld = World{items =[Object{shape =dummyPlane
+             , color= (150,0,0) --(R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
+             ,reflectance = 1000},
              Object{shape =dummySphere
              , color=(0,0,255) -- (R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
              ,reflectance = 0}]
+             ,lights = [Light{ 
+                lpos =  R.fromListUnboxed (R.ix1 3) [0,10,0]
+                ,lcolor = (255,255,255)
+             }]
+             } {-
+             Object{shape =dummyPlane2
+             , color=(0,150,0) -- (R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
+             ,reflectance = 1000},
+             ] -}
 
 
 
 dummyVec1 :: DoubleVector
-dummyVec1 = R.fromListUnboxed (R.ix1 3) [1,1,1]
+dummyVec1 = R.fromListUnboxed (R.ix1 3) [1,0,0]
 
 
 dummyVec2 :: DoubleVector
@@ -120,13 +129,22 @@ main = do
     putStrLn $ "Starting trace on a " ++ show widht ++ "x" ++ show height ++ " ..."
     let w = dummyWorld 
     let c = dummyCam
+    let indexs = [(0,0,0)| x<- [0..(widht-1)], y <- [0..(height-1)] ]
     --putStrLn $ show [(cameraRay2 c x y)| x <- [0..(widht-1)], y <- [0..(height-1)]]
-    ls <- sequence [ trace w (cameraRay c (widht,height) x y) 0 | x <- [0..(widht-1)], y <- [0..(height-1)]]
+    let image = R.fromListUnboxed (R.ix2 widht height) indexs
+    let final = R.computeUnboxedS $ R.traverse image id (\f x -> traceFunc f x widht height w c) -- () -- (\_ (R.Z R.:. ax R.:. ay R.:. _ ) ->(R.Z R.:. ax R.:. ay R.:. ))
+    putStrLn $ "Trace is done creating image named " ++ show path
+    writeImageToBMP ("./"++path) final
+    {-
+    ls <- sequence [trace w (cameraRay c (widht,height) x y) 0 | x <- [0..(widht-1)], y <- [0..(height-1)]]
     putStrLn $ "Trace is done creating image named " ++ show path
     let image = R.fromListUnboxed (R.ix2 widht height) ls
     writeImageToBMP ("./"++path) image
-
---                 
+-}
+--      
+traceFunc :: (R.DIM2 -> Color) -> R.DIM2 -> Int -> Int -> World -> Camera -> Color --(Word8
+traceFunc _ (R.Z R.:. ax R.:. ay) widht height w c = unsafePerformIO(trace w (cameraRay (c) (widht,height) ax ay) 0)
+           
 trace :: World -> Ray -> Depth -> IO Color
 trace w r@Ray{dir = dir, point = pnt} d = do
     case d of
@@ -138,23 +156,41 @@ trace w r@Ray{dir = dir, point = pnt} d = do
                 Nothing -> return $ (0,0,0)
                 (Just (obj,hitp)) -> do
                     --putStrLn $ "hit"
+                    lintens <- intersectLights hitp w
                     let emittance = color obj
                     rand <- getStdGen
                     let norm = calcNormal obj hitp
-                    newDir <-  randVec norm 3.14 rand 
-                    cos_theta <- dotProd newDir norm
+                    newDir <- getSampledBiased norm 0 rand ---randVec norm 3.14 rand 
+                    cos_theta <- dotProd (normalize newDir) norm
                     let brdf = 2 * (reflectance obj) * cos_theta
                     --putStrLn $ show newDir
                     reflCol <- trace w (Ray{dir=newDir, point = hitp}) (d+1)                    
-                    return $ calcFinalCol emittance reflCol brdf
+                    return $ calcFinalCol emittance reflCol brdf lintens
                     
                  
             
-calcFinalCol :: Color -> Color -> Double ->Color
-calcFinalCol (er,eg,eb) (rr,rg,rb) brf = (calc er rr,calc eg rg,calc eb rb)  --R.computeUnboxedS$ R.map round $ R.map (b*) $ R.map fromIntegral rc
-    where calc a b = a + round (brf * fromIntegral b)
+calcFinalCol :: Color -> Color -> Double ->Double ->Color
+calcFinalCol (er,eg,eb) (rr,rg,rb) brf light = (calc er rr light,calc eg rg light,calc eb rb light)  --R.computeUnboxedS$ R.map round $ R.map (b*) $ R.map fromIntegral rc
+    where calc a b l =  (round ((fromIntegral a)*0.1)) + ((a  + round (brf * fromIntegral b))*round l)
 
-
+    
+getSampledBiased :: DoubleVector -> Double -> StdGen -> IO DoubleVector
+getSampledBiased dir pow randG = do
+    let dir' = normalize dir
+    let o1 = normalize $ ortho dir
+    let o2 = normalize $ crossProd dir o1
+    let (rand',randG2) = randomR (-1000,1000) randG -- <- undefined
+    let rand = (rand'/1000)
+    let (rand2',randG3) = randomR (-1000,1000) randG2 -- <- undefined
+    let rand2 = (rand2'/1000)
+    let randV =  R.fromListUnboxed (R.ix1 2) [rand,rand2]
+    let randV2 = R.fromListUnboxed (R.ix1 2) [(randV R.! (R.Z R.:. 0))*2.0*pi, (randV R.! (R.Z R.:. 0))**(1.0/(pow+1.0))]
+    let onemius = sqrt (1.0 - ((randV2 R.! (R.Z R.:. 1))*(randV2 R.! (R.Z R.:. 1))))
+    return $ R.computeUnboxedS $ R.zipWith (+) ( R.zipWith (+) (R.map ((cos (randV2 R.! (R.Z R.:. 0)) * onemius)*) o1)
+        (R.map ((sin (randV2 R.! (R.Z R.:. 0)) * onemius)*) o2)) (R.map (randV2 R.! (R.Z R.:. 0)*) dir)
+    
+    
+    {-
 rotMatX :: Double -> R.Array R.U R.DIM2 Double
 rotMatX angle =(R.fromListUnboxed (R.ix2 4 4) [
                                                1.0, 0.0        ,0.0             ,0.0,                                                
@@ -188,7 +224,7 @@ testRandVec v frustum gen = do
                                 
                                 let temp2=vLength temp
                                 
-                                putStrLn $ show (temp) ++"   " ++ show(temp2)
+                                --putStrLn $ show (temp) ++"   " ++ show(temp2)
                                 testRandVec v frustum gen'
                                                
 randVec:: DoubleVector ->  Double -> StdGen -> IO DoubleVector
@@ -203,8 +239,9 @@ randVec v spawnFrustum randG = do
                     let lengthxz = (v R.! (R.Z R.:. 0)) * (v R.! (R.Z R.:. 0)) + (v R.! (R.Z R.:. 2)) * (v R.! (R.Z R.:. 2)) -- sqared length
                     alphaxz <- alphaxzAng v lengthxz
                     
-
-
+                    --putStrLn $ show (alphaxz *180.0/pi)
+                    --putStrLn $ show (alphaxy * 180.0/pi)
+                    
 
                     let vector_x = (R.fromListUnboxed (R.ix2 1 4) [1,0,0,1])            
                     -- pick angle and make rotation matrix
@@ -226,13 +263,15 @@ randVec v spawnFrustum randG = do
 
                     vector_x3 <- mmultP vector_x2 mat2
 
-                    let mat3 = rotMatZ alphaxy
-                                                
-                    vector_x4 <- mmultP vector_x3  mat3;
-
-                    let mat4 = rotMatY alphaxz
-                    vector_x5 <- mmultP vector_x4 mat4
+                    let mat3 = rotMatZ alphaxz
                     
+                    
+                    vector_x4 <- mmultP vector_x3  mat3
+
+                    let mat4 = rotMatY  alphaxy
+                    vector_x5 <- mmultP vector_x4 mat4
+                    putStrLn $ show vector_x4
+                    putStrLn $ show vector_x5
                     return $ R.fromListUnboxed (R.ix1 3) [ (vector_x5 R.! (R.Z R.:. 0 R.:. 0))/(vector_x5 R.! (R.Z R.:. 0 R.:. 3)) ,0.0-((vector_x5 R.! (R.Z R.:. 0 R.:. 1))/(vector_x5 R.! (R.Z R.:. 0 R.:. 3))),(vector_x5 R.! (R.Z R.:. 0 R.:. 2))/(vector_x5 R.! (R.Z R.:. 0 R.:. 3))] 
     where 
         alphaxyAng:: DoubleVector -> Double -> IO Double
@@ -333,4 +372,4 @@ row (R.Z R.:. r R.:. _) = r
 
 col :: R.DIM2 -> Int
 col (R.Z R.:. _ R.:. c) = c       
-            
+            -}
