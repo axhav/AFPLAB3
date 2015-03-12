@@ -8,6 +8,7 @@ import qualified Data.Array.Repa.Unsafe           as R
 import Data.Array.Repa.IO.BMP
 import System.Random
 import Data.Word
+import Data.Time
 
 import Ray
 import World
@@ -28,14 +29,14 @@ dummyCam = Camera {
                } 
  
 dummyRay :: Ray
-dummyRay = Ray { dir =  R.fromListUnboxed (R.ix1 3) [5,2.1,0] 
+dummyRay = Ray { dir =  R.fromListUnboxed (R.ix1 3) [5,0,0] 
                 ,point = R.fromListUnboxed (R.ix1 3) [0,0,0]
                }
                 
 dummySphere :: Shape
 dummySphere = Sphere {
-                spos =  R.fromListUnboxed (R.ix1 3) [10,2,0] 
-                ,radius = 4.0
+                spos =  R.fromListUnboxed (R.ix1 3) [10,0,0] 
+                ,radius = 2.0
             }
             
 dummySphere2 :: Shape
@@ -55,28 +56,36 @@ dummyPlane2 = Plane {
                 ppos =  R.fromListUnboxed (R.ix1 3) [0,0,1] 
                 ,pnormal = R.fromListUnboxed (R.ix1 3) [0,0,1]
             }
+
+dummyPlane3 :: Shape
+dummyPlane3 = Plane {
+                ppos =  R.fromListUnboxed (R.ix1 3) [4,0,0] 
+                ,pnormal = R.fromListUnboxed (R.ix1 3) [1,0,0]
+            }
             
-dummyObj = Object{shape =dummySphere2
+dummyObj = Object{shape =dummySphere
              , color=(0,255,0) -- (R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
              ,reflectance = 0}
            
             
 dummyWorld :: World
-dummyWorld = World{items =[Object{shape =dummyPlane
-             , color= (150,0,0) --(R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
-             ,reflectance = 1000},
-             Object{shape =dummySphere
+dummyWorld = World{items = [Object{shape =dummySphere
              , color=(0,0,255) -- (R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
-             ,reflectance = 0}]
+             ,reflectance = 0},
+             Object{shape =dummyPlane
+             , color= (150,0,0) --(R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
+             ,reflectance = 1000}]
              ,lights = [Light{ 
                 lpos =  R.fromListUnboxed (R.ix1 3) [0,10,0]
                 ,lcolor = (255,255,255)
              }]
-             } {-
+             } {-,
+            
              Object{shape =dummyPlane2
              , color=(0,150,0) -- (R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
              ,reflectance = 1000},
-             ] -}
+             ] 
+             -}
 
 
 
@@ -129,12 +138,14 @@ main = do
     putStrLn $ "Starting trace on a " ++ show widht ++ "x" ++ show height ++ " ..."
     let w = dummyWorld 
     let c = dummyCam
+    t0 <- getCurrentTime
     let indexs = [(0,0,0)| x<- [0..(widht-1)], y <- [0..(height-1)] ]
-    --putStrLn $ show [(cameraRay2 c x y)| x <- [0..(widht-1)], y <- [0..(height-1)]]
     let image = R.fromListUnboxed (R.ix2 widht height) indexs
-    let final = R.computeUnboxedS $ R.traverse image id (\f x -> traceFunc f x widht height w c) -- () -- (\_ (R.Z R.:. ax R.:. ay R.:. _ ) ->(R.Z R.:. ax R.:. ay R.:. ))
-    putStrLn $ "Trace is done creating image named " ++ show path
+    let final = R.computeUnboxedS $ R.traverse image id (\f x -> traceFunc f x widht height w c ) 
     writeImageToBMP ("./"++path) final
+    t1 <- getCurrentTime
+    
+    putStrLn $ "Trace is done (in "++ show (diffUTCTime t1 t0) ++") creating image named " ++ show path
     {-
     ls <- sequence [trace w (cameraRay c (widht,height) x y) 0 | x <- [0..(widht-1)], y <- [0..(height-1)]]
     putStrLn $ "Trace is done creating image named " ++ show path
@@ -146,33 +157,45 @@ traceFunc :: (R.DIM2 -> Color) -> R.DIM2 -> Int -> Int -> World -> Camera -> Col
 traceFunc _ (R.Z R.:. ax R.:. ay) widht height w c = unsafePerformIO(trace w (cameraRay (c) (widht,height) ax ay) 0)
            
 trace :: World -> Ray -> Depth -> IO Color
-trace w r@Ray{dir = dir, point = pnt} d = do
+trace w r@Ray{dir = dir', point = pnt} d = do
     case d of
-        3 ->do
+        2 ->do
             return $ (0,0,0)     -- byt 5an till dynamisk?
         _ -> do 
             test <-intersectWorld r w 
             case test of
                 Nothing -> return $ (0,0,0)
                 (Just (obj,hitp)) -> do
-                    --putStrLn $ "hit"
-                    lintens <- intersectLights hitp w
-                    let emittance = color obj
                     rand <- getStdGen
+                    let emittance = color obj
                     let norm = calcNormal obj hitp
+                    shadow <- intersectLights hitp w
                     newDir <- getSampledBiased norm 0 rand ---randVec norm 3.14 rand 
                     cos_theta <- dotProd (normalize newDir) norm
                     let brdf = 2 * (reflectance obj) * cos_theta
                     --putStrLn $ show newDir
-                    reflCol <- trace w (Ray{dir=newDir, point = hitp}) (d+1)                    
-                    return $ calcFinalCol emittance reflCol brdf lintens
+                    reflCol <- trace w (Ray{dir=newDir, point = hitp}) (d+1) 
+                    -- phong shading
+                    --phongShader Ray{dir= dir', point = hitp} w (color obj) norm shadow
+                    
+                    -- end phong
+                    --putStrLn $ show reflCol ++ "   " ++ show d  ++ "   " ++ show (cos_theta *180/pi)             
+                    calcFinalCol emittance reflCol brdf shadow
+                    
                     
                  
             
-calcFinalCol :: Color -> Color -> Double ->Double ->Color
-calcFinalCol (er,eg,eb) (rr,rg,rb) brf light = (calc er rr light,calc eg rg light,calc eb rb light)  --R.computeUnboxedS$ R.map round $ R.map (b*) $ R.map fromIntegral rc
-    where calc a b l =  (round ((fromIntegral a)*0.1)) + ((a  + round (brf * fromIntegral b))*round l)
-
+calcFinalCol :: Color -> Color -> Double ->Double -> IO Color
+calcFinalCol (er,eg,eb) (rr,rg,rb) brf light = do
+    --putStrLn $ (show rb)++ "   " ++ (show eb) ++ "    " ++ show (round ((fromIntegral eb) * (light*0.8)))
+    let res =(calc er rr light,calc eg rg light,calc eb rb light)
+    --putStrLn $ "1: " ++ show (round ((fromIntegral eb)*0.1)) 
+    --putStrLn $ "2: " ++ show (round ((fromIntegral eb) * (light)*0.8))
+    --putStrLn $ "3: " ++ show rb
+    --putStrLn $ show $ ((brf * fromIntegral rb)+ ((fromIntegral eb) * (light)) + ((fromIntegral eb)*0.1))
+    --putStrLn $ show res
+    return res  --R.computeUnboxedS$ R.map round $ R.map (b*) $ R.map fromIntegral rc
+    where calc a b l = (round ((brf * fromIntegral b)+ ((fromIntegral a) * (l*0.8)) + ((fromIntegral a)*0.1)))
     
 getSampledBiased :: DoubleVector -> Double -> StdGen -> IO DoubleVector
 getSampledBiased dir pow randG = do
@@ -186,8 +209,9 @@ getSampledBiased dir pow randG = do
     let randV =  R.fromListUnboxed (R.ix1 2) [rand,rand2]
     let randV2 = R.fromListUnboxed (R.ix1 2) [(randV R.! (R.Z R.:. 0))*2.0*pi, (randV R.! (R.Z R.:. 0))**(1.0/(pow+1.0))]
     let onemius = sqrt (1.0 - ((randV2 R.! (R.Z R.:. 1))*(randV2 R.! (R.Z R.:. 1))))
-    return $ R.computeUnboxedS $ R.zipWith (+) ( R.zipWith (+) (R.map ((cos (randV2 R.! (R.Z R.:. 0)) * onemius)*) o1)
-        (R.map ((sin (randV2 R.! (R.Z R.:. 0)) * onemius)*) o2)) (R.map (randV2 R.! (R.Z R.:. 0)*) dir)
+    setStdGen randG3
+    return $ (R.computeUnboxedS $ R.zipWith (+) ( R.zipWith (+) (R.map ((cos (randV2 R.! (R.Z R.:. 0)) * onemius)*) o1)
+        (R.map ((sin (randV2 R.! (R.Z R.:. 0)) * onemius)*) o2)) (R.map (randV2 R.! (R.Z R.:. 0)*) dir))
     
     
     {-
