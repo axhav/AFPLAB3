@@ -141,7 +141,9 @@ main = do
     t0 <- getCurrentTime
     let indexs = [(0,0,0)| x<- [0..(widht-1)], y <- [0..(height-1)] ]
     let image = R.fromListUnboxed (R.ix2 widht height) indexs
-    let final = R.computeUnboxedS $ R.traverse image id (\f x -> traceFunc f x widht height w c ) 
+    let finalasDouble = R.computeUnboxedS $ R.traverse image id (\f x -> traceFunc f x widht height w c ) 
+    let final = R.computeUnboxedS $ R.map convertColtoFCol finalasDouble
+    
     writeImageToBMP ("./"++path) final
     t1 <- getCurrentTime
     
@@ -155,7 +157,8 @@ main = do
 --      
 traceFunc :: (R.DIM2 -> Color) -> R.DIM2 -> Int -> Int -> World -> Camera -> Color --(Word8
 traceFunc _ (R.Z R.:. ax R.:. ay) widht height w c = unsafePerformIO(trace w (cameraRay (c) (widht,height) ax ay) 0)
-           
+
+
 trace :: World -> Ray -> Depth -> IO Color
 trace w r@Ray{dir = dir', point = pnt} d = do
     case d of
@@ -195,7 +198,7 @@ calcFinalCol (er,eg,eb) (rr,rg,rb) brf light = do
     --putStrLn $ show $ ((brf * fromIntegral rb)+ ((fromIntegral eb) * (light)) + ((fromIntegral eb)*0.1))
     --putStrLn $ show res
     return res  --R.computeUnboxedS$ R.map round $ R.map (b*) $ R.map fromIntegral rc
-    where calc a b l = (round ((brf * fromIntegral b)+ ((fromIntegral a) * (l*0.8)) + ((fromIntegral a)*0.1)))
+    where calc a b l =  (brf *b) + (a*l*0.8) + (a*0.1) --(round ((brf * fromIntegral b)+ ((fromIntegral a) * (l*0.8)) + ((fromIntegral a)*0.1)))
     
 getSampledBiased :: DoubleVector -> Double -> StdGen -> IO DoubleVector
 getSampledBiased dir pow randG = do
