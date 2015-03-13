@@ -163,7 +163,7 @@ main = do
 --      
 
 multPixtraceFunc::(R.DIM2 -> Color) -> R.DIM2 -> Int -> Int -> World -> Camera -> Color
-multPixtraceFunc f (R.Z R.:. ax R.:. ay) widht height w c =  foldr1 (avrageCol) [traceFunc f (R.Z R.:. ax R.:. ay) widht height w c | _<-[1..5]]
+multPixtraceFunc f (R.Z R.:. ax R.:. ay) widht height w c =  foldr1 (avrageCol) [traceFunc f (R.Z R.:. ax R.:. ay) widht height w c | _<-[1..10]]
 
 avrageCol::Color -> Color-> Color
 --avrageCol (0,0,0) (a1,b1,c1) = (a1,b1,c1)
