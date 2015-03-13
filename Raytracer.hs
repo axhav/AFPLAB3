@@ -90,9 +90,9 @@ dummyWorld = World{items = [Object{shape =dummySphere
              -}
 
 dummyWorld2 :: World 
-dummyWorld2 = addLightToWorld (createLight (0,10,0) (t2c White)) 
-    (addObjectToWorld (createSphere 2.0 (10,0,0) (t2c Blue) 0 )
-    (addObjectToWorld (createPlane vDown vUp (150,0,0) 1000) emptyWorld ))
+dummyWorld2 = addLightToWorld (createLight (0.0,10.0,0.0) (t2c White))
+    (addObjectToWorld (createSphere 2.0 (10.0,0.0,0.0) (t2c Blue) 0 )
+     (addObjectToWorld (createPlane vDown vUp (150.0,0.0,0.0) 1000) emptyWorld ))
     
 
 dummyVec1 :: DoubleVector
@@ -142,7 +142,7 @@ main = do
     let widht = 200
     let height = 200
     putStrLn $ "Starting trace on a " ++ show widht ++ "x" ++ show height ++ " ..."
-    let w = dummyWorld2 
+    let w = dummyWorld 
     let c = dummyCam
     t0 <- getCurrentTime
     let indexs = [(0,0,0)| x<- [0..(widht-1)], y <- [0..(height-1)] ]
@@ -189,8 +189,13 @@ trace w r@Ray{dir = dir', point = pnt} d = do
                     
                     -- end phong
                     --putStrLn $ show reflCol ++ "   " ++ show d  ++ "   " ++ show (cos_theta *180/pi)             
-                    calcFinalCol emittance reflCol brdf shadow
+                    temp <- calcFinalCol emittance reflCol brdf shadow
+                    --putStrLn $ "0: "++ show d
+                    --putStrLn $ "1: "++ show temp
+                    --putStrLn $ "2: "++ show reflCol
+                    --putStrLn $ "3: "++ show brdf
                     
+                    return temp
                     
                  
             
