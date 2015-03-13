@@ -80,6 +80,9 @@ dummyWorld = World{items = [Object{shape =dummySphere
              ,lights = [Light{ 
                 lpos =  R.fromListUnboxed (R.ix1 3) [20,10,0]
                 ,lcolor = (255,255,255)
+             },Light{ 
+                lpos =  R.fromListUnboxed (R.ix1 3) [5,7,0]
+                ,lcolor = (255,255,255)
              }]
              } {-,
             
@@ -163,7 +166,7 @@ main = do
 --      
 
 multPixtraceFunc::(R.DIM2 -> Color) -> R.DIM2 -> Int -> Int -> World -> Camera -> Color
-multPixtraceFunc f (R.Z R.:. ax R.:. ay) widht height w c =  foldr1 (avrageCol) [traceFunc f (R.Z R.:. ax R.:. ay) widht height w c | _<-[1..5]]
+multPixtraceFunc f (R.Z R.:. ax R.:. ay) widht height w c =  foldr1 (avrageCol) [traceFunc f (R.Z R.:. ax R.:. ay) widht height w c | _<-[1..25]]
 
 avrageCol::Color -> Color-> Color
 --avrageCol (0,0,0) (a1,b1,c1) = (a1,b1,c1)
@@ -182,7 +185,7 @@ trace w r@Ray{dir = dir', point = pnt} d = do
         _ -> do 
             test <-intersectWorld r w 
             case test of
-                Nothing -> return $ (0,0,0)
+                Nothing -> return $ (0,255,0)
                 (Just (obj,hitp)) -> do
                     --rand <- getStdGen
                     let emittance = color obj
@@ -190,8 +193,10 @@ trace w r@Ray{dir = dir', point = pnt} d = do
                     lightIntens <- intersectLights pnt hitp norm w
                     newDir <- getSampledBiased norm 0 --rand ---randVec norm 3.14 rand
                     --putStrLn $ show newDir
-                    cos_theta <- dotProd (normalize newDir) norm
-                    let brdf = 2 * (reflectance obj) * cos_theta
+                    cos_theta' <- dotProd (normalize newDir) norm
+                    let cos_theta =abs cos_theta' 
+                    let brdf' = 2 * (reflectance obj) * cos_theta
+                    let brdf = minimum [brdf', 1/pi]
                     --putStrLn $ show newDir
                     reflCol <- trace w (Ray{dir=newDir, point = hitp}) (d+1) 
                     -- phong shading
@@ -205,6 +210,8 @@ trace w r@Ray{dir = dir', point = pnt} d = do
                     --putStrLn $ "2: "++ show reflCol
                     --putStrLn $ "3: "++ show brdf
                     calcFinalCol emittance reflCol brdf lightIntens
+                    
+                    
                     
                  
             
