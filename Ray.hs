@@ -36,7 +36,7 @@ intersectLights cP hitp norm w@World{items = o, lights = (l:ls)} = do
     res <- intersectLight cP hitp norm w l
 
     res2 <-intersectLights cP hitp norm (World{items = o , lights = ls})
-    let fres =(((fst res)+fst(res2)) /(fromIntegral ( length ls +1)),
+    let fres =(((fst res)+fst(res2)) /2.0,
                                                 (addCol (snd res)(snd res2)))
     --putStrLn $ show fres    
     return $ fres
