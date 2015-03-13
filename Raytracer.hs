@@ -80,6 +80,9 @@ dummyWorld = World{items = [Object{shape =dummySphere
              ,lights = [Light{ 
                 lpos =  R.fromListUnboxed (R.ix1 3) [20,10,0]
                 ,lcolor = (255,255,255)
+             },Light{ 
+                lpos =  R.fromListUnboxed (R.ix1 3) [5,7,0]
+                ,lcolor = (255,255,255)
              }]
              } {-,
             
@@ -182,16 +185,18 @@ trace w r@Ray{dir = dir', point = pnt} d = do
         _ -> do 
             test <-intersectWorld r w 
             case test of
-                Nothing -> return $ (0,0,0)
+                Nothing -> return $ (0,255,0)
                 (Just (obj,hitp)) -> do
                     --rand <- getStdGen
                     let emittance = color obj
                     let norm = calcNormal obj hitp
                     lightIntens <- intersectLights pnt hitp norm w
-                    newDir <- getSampledBiased norm 0 --rand ---randVec norm 3.14 rand
+                    newDir <- getSampledBiased norm 1 --rand ---randVec norm 3.14 rand
                     --putStrLn $ show newDir
-                    cos_theta <- dotProd (normalize newDir) norm
-                    let brdf = 2 * (reflectance obj) * cos_theta
+                    cos_theta' <- dotProd (normalize newDir) norm
+                    let cos_theta =abs cos_theta' 
+                    let brdf' = 2 * (reflectance obj) -- * cos_theta
+                    let brdf = minimum [brdf', 1/pi]
                     --putStrLn $ show newDir
                     reflCol <- trace w (Ray{dir=newDir, point = hitp}) (d+1) 
                     -- phong shading
@@ -205,6 +210,8 @@ trace w r@Ray{dir = dir', point = pnt} d = do
                     --putStrLn $ "2: "++ show reflCol
                     --putStrLn $ "3: "++ show brdf
                     calcFinalCol emittance reflCol brdf lightIntens
+                    
+                    
                     
                  
             
@@ -222,10 +229,10 @@ getSampledBiased dir pow  = do
     let o1 = normalize $ ortho dir
     let o2 = normalize $ crossProd dir o1
     randG <- newStdGen
-    let (rand',_) = randomR (-1000,1000) randG -- <- undefined
+    let (rand',_) = randomR (0,1000) randG -- <- undefined
     let rand = (rand'/1000)
     randG2 <- newStdGen
-    let (rand2',_) = randomR (-1000,1000) randG2 -- <- undefined
+    let (rand2',_) = randomR (0,1000) randG2 -- <- undefined
     let rand2 = (rand2'/1000)
     let randV =  R.fromListUnboxed (R.ix1 2) [rand,rand2]
     let randV2 = R.fromListUnboxed (R.ix1 2) [(randV R.! (R.Z R.:. 0))*2.0*pi, (randV R.! (R.Z R.:. 1))**(1.0/(pow+1.0))]
