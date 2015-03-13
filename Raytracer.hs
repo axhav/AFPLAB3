@@ -198,14 +198,12 @@ trace w r@Ray{dir = dir', point = pnt} d = do
                     
                     -- end phong
                     --putStrLn $ show reflCol ++ "   " ++ show d  ++ "   " ++ show (cos_theta *180/pi)             
-                    temp <- calcFinalCol emittance reflCol brdf shadow
+                    
                     --putStrLn $ "0: "++ show d
                     --putStrLn $ "1: "++ show temp
                     --putStrLn $ "2: "++ show reflCol
                     --putStrLn $ "3: "++ show brdf
                     calcFinalCol emittance reflCol brdf lightIntens
-                    
-                    return temp
                     
                  
             
