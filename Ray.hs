@@ -30,30 +30,46 @@ intersectWorld ray@Ray{dir = d, point= o} w'@World{items = w} = do
             let index = findShortest o intp
             return $ Just (objs !! index , intp !! index) 
          
-intersectLights :: DoubleVector -> World -> IO Double 
-intersectLights hitp w@World{lights = []} = return 0
-intersectLights hitp w@World{items = o, lights = (l:ls)} = do
-    res <- intersectLight hitp w l
-    --putStrLn $ show res
-    res2 <-intersectLights hitp (World{items = o , lights = ls})
-    let fres =(res +res2) /(fromIntegral ( length ls +1))
+intersectLights :: DoubleVector -> DoubleVector -> DoubleVector -> World -> IO(Double, Color) 
+intersectLights cP hitp norm w@World{lights = []} = return (0,(0,0,0))
+intersectLights cP hitp norm w@World{items = o, lights = (l:ls)} = do
+    res <- intersectLight cP hitp norm w l
+
+    res2 <-intersectLights cP hitp norm (World{items = o , lights = ls})
+    let fres =(((fst res)+fst(res2)) /(fromIntegral ( length ls +1)),
+                                                (addCol (snd res)(snd res2)))
     --putStrLn $ show fres    
     return $ fres
-    
-intersectLight :: DoubleVector -> World -> Light -> IO Double
-intersectLight hitp w@World{items = o} l@Light{lpos = pos} = do
-    let direction = R.computeUnboxedS $ ( R.zipWith (-)  pos hitp )
-    let dir'= normalize direction
+
+addCol:: Color->Color -> Color
+addCol (a,b,c) (a1,b1,c1)=(a+a1,b+b1,c+c1)    
+
+mulCol::Color -> Double -> Color
+mulCol (a,b,c) m = (a*m,b*m,c*m)
+
+intersectLight ::DoubleVector -> DoubleVector -> DoubleVector -> World -> Light -> IO(Double, Color)
+intersectLight cPos hitp norm w@World{items = o} l@Light{lpos = pos, lcolor=lc} = do
+    let directionToL = R.computeUnboxedS $ ( R.zipWith (-)  pos hitp )
+    let cPos2htp       = R.computeUnboxedS $ ( R.zipWith (-) cPos hitp)
+    let dir'= normalize directionToL
     obj <- intersectWorld Ray{point = hitp, dir = dir'} w
     case obj of 
-        Nothing -> return 1.0
+        Nothing -> do
+                    let halfDir' = normalize $ R.computeUnboxedS $ R.zipWith (+) directionToL  cPos2htp        -- may be better with -
+                    specang1' <- dotProd halfDir' norm
+                    let temp' = (maximum [specang1', 0])**5
+                    return(temp',mulCol lc temp') --return 1.0 
         Just (obj,hitpoint) -> do
-            let llenght = vLength direction
+            let llenght = vLength directionToL
             let olenght = vLength $R.computeUnboxedS $ ( R.zipWith (-) hitp hitpoint)
            -- putStrLn $ show olenght ++ "    |    " ++ show llenght
             case llenght > olenght of
-                True -> return 0.0
-                False -> dotProd (calcNormal obj hitpoint) dir' --return 1.0
+                True -> return (0.0, (0,0,0))
+                False -> do
+                    let halfDir = normalize $ R.computeUnboxedS $ R.zipWith (+) directionToL cPos2htp       -- may be better with -
+                    specang1 <- dotProd halfDir norm
+                    let temp = (maximum [specang1, 0])**5
+                    return(temp,mulCol lc temp) --return 1.0
          
 intersectP :: Ray -> Object -> IO DoubleVector
 intersectP ray@Ray{dir=d , point=o} obj@Object{shape=s@Sphere{spos=c, radius = r}} = do

@@ -78,7 +78,7 @@ dummyWorld = World{items = [Object{shape =dummySphere
              , color= (150,0,0) --(R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
              ,reflectance = 1000}]
              ,lights = [Light{ 
-                lpos =  R.fromListUnboxed (R.ix1 3) [0,10,0]
+                lpos =  R.fromListUnboxed (R.ix1 3) [20,10,0]
                 ,lcolor = (255,255,255)
              }]
              } {-,
@@ -139,15 +139,15 @@ cameraRay3 r@Camera{cdir = dir, cpoint = pnt, cup =up} (maxX,maxY) x y =
 main :: IO ()
 main = do
     let path = "test.bmp"
-    let widht = 200
-    let height = 200
+    let widht = 50
+    let height = 50
     putStrLn $ "Starting trace on a " ++ show widht ++ "x" ++ show height ++ " ..."
     let w = dummyWorld 
     let c = dummyCam
     t0 <- getCurrentTime
     let indexs = [(0,0,0)| x<- [0..(widht-1)], y <- [0..(height-1)] ]
     let image = R.fromListUnboxed (R.ix2 widht height) indexs
-    let finalasDouble = R.computeUnboxedS $ R.traverse image id (\f x -> traceFunc f x widht height w c ) 
+    let finalasDouble = R.computeUnboxedS $ R.traverse image id (\f  x ->  multPixtraceFunc  f x widht height w c ) 
     let final = R.computeUnboxedS $ R.map convertColtoFCol finalasDouble
     
     writeImageToBMP ("./"++path) final
@@ -161,6 +161,15 @@ main = do
     writeImageToBMP ("./"++path) image
 -}
 --      
+
+multPixtraceFunc::(R.DIM2 -> Color) -> R.DIM2 -> Int -> Int -> World -> Camera -> Color
+multPixtraceFunc f (R.Z R.:. ax R.:. ay) widht height w c =  foldr1 (avrageCol) [traceFunc f (R.Z R.:. ax R.:. ay) widht height w c | _<-[1..20]]
+
+avrageCol::Color -> Color-> Color
+--avrageCol (0,0,0) (a1,b1,c1) = (a1,b1,c1)
+--avrageCol (a,b,c) (0,0,0) = (a,b,c)
+avrageCol (a,b,c) (a1,b1,c1) = ((a+a1)/2.0,(b+b1)/2.0,(c+c1)/2.0)
+
 traceFunc :: (R.DIM2 -> Color) -> R.DIM2 -> Int -> Int -> World -> Camera -> Color --(Word8
 traceFunc _ (R.Z R.:. ax R.:. ay) widht height w c = unsafePerformIO(trace w (cameraRay2 (c) (widht,height) ax ay) 0)
 
@@ -175,11 +184,11 @@ trace w r@Ray{dir = dir', point = pnt} d = do
             case test of
                 Nothing -> return $ (0,0,0)
                 (Just (obj,hitp)) -> do
-                    rand <- getStdGen
+                    --rand <- getStdGen
                     let emittance = color obj
                     let norm = calcNormal obj hitp
-                    shadow <- intersectLights hitp w
-                    newDir <- getSampledBiased norm 0 rand ---randVec norm 3.14 rand 
+                    lightIntens <- intersectLights pnt hitp norm w
+                    newDir <- getSampledBiased norm 0 --rand ---randVec norm 3.14 rand 
                     cos_theta <- dotProd (normalize newDir) norm
                     let brdf = 2 * (reflectance obj) * cos_theta
                     --putStrLn $ show newDir
@@ -194,36 +203,35 @@ trace w r@Ray{dir = dir', point = pnt} d = do
                     --putStrLn $ "1: "++ show temp
                     --putStrLn $ "2: "++ show reflCol
                     --putStrLn $ "3: "++ show brdf
+                    calcFinalCol emittance reflCol brdf lightIntens
                     
                     return temp
                     
                  
             
-calcFinalCol :: Color -> Color -> Double ->Double -> IO Color
-calcFinalCol (er,eg,eb) (rr,rg,rb) brf light = do
+calcFinalCol :: Color -> Color -> Double ->(Double,Color) -> IO Color
+calcFinalCol (er,eg,eb) (rr,rg,rb) brf (lightInten,(lc1,lc2,lc3)) = do
     --putStrLn $ (show rb)++ "   " ++ (show eb) ++ "    " ++ show (round ((fromIntegral eb) * (light*0.8)))
-    let res =(calc er rr light,calc eg rg light,calc eb rb light)
-    --putStrLn $ "1: " ++ show (round ((fromIntegral eb)*0.1)) 
-    --putStrLn $ "2: " ++ show (round ((fromIntegral eb) * (light)*0.8))
-    --putStrLn $ "3: " ++ show rb
-    --putStrLn $ show $ ((brf * fromIntegral rb)+ ((fromIntegral eb) * (light)) + ((fromIntegral eb)*0.1))
-    --putStrLn $ show res
-    return res  --R.computeUnboxedS$ R.map round $ R.map (b*) $ R.map fromIntegral rc
-    where calc a b l =  (brf *b) + (a*l*0.8) + (a*0.1) --(round ((brf * fromIntegral b)+ ((fromIntegral a) * (l*0.8)) + ((fromIntegral a)*0.1)))
+    let res =(calc er rr lightInten lc1 brf,calc eg rg lightInten lc2 brf,calc eb rb lightInten lc3 brf)
+    --putStrLn $ show $ lightInten
+    return res
+    where calc a b l lc brd = a*0.1 +l*(a*0.9+b*brd+lc*l)
     
-getSampledBiased :: DoubleVector -> Double -> StdGen -> IO DoubleVector
-getSampledBiased dir pow randG = do
+getSampledBiased :: DoubleVector -> Double  -> IO DoubleVector -- -> StdGen
+getSampledBiased dir pow  = do
     let dir' = normalize dir
     let o1 = normalize $ ortho dir
     let o2 = normalize $ crossProd dir o1
-    let (rand',randG2) = randomR (-1000,1000) randG -- <- undefined
+    randG <- newStdGen
+    let (rand',_) = randomR (-1000,1000) randG -- <- undefined
     let rand = (rand'/1000)
-    let (rand2',randG3) = randomR (-1000,1000) randG2 -- <- undefined
+    randG2 <- newStdGen
+    let (rand2',_) = randomR (-1000,1000) randG2 -- <- undefined
     let rand2 = (rand2'/1000)
     let randV =  R.fromListUnboxed (R.ix1 2) [rand,rand2]
     let randV2 = R.fromListUnboxed (R.ix1 2) [(randV R.! (R.Z R.:. 0))*2.0*pi, (randV R.! (R.Z R.:. 0))**(1.0/(pow+1.0))]
     let onemius = sqrt (1.0 - ((randV2 R.! (R.Z R.:. 1))*(randV2 R.! (R.Z R.:. 1))))
-    setStdGen randG3
+    --setStdGen randG3
     return $ (R.computeUnboxedS $ R.zipWith (+) ( R.zipWith (+) (R.map ((cos (randV2 R.! (R.Z R.:. 0)) * onemius)*) o1)
         (R.map ((sin (randV2 R.! (R.Z R.:. 0)) * onemius)*) o2)) (R.map (randV2 R.! (R.Z R.:. 0)*) dir))
     
