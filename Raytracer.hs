@@ -76,7 +76,7 @@ dummyWorld = World{items = [Object{shape =dummySphere
              ,reflectance = 0},
              Object{shape =dummyPlane
              , color= (150,0,0) --(R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
-             ,reflectance = 1000}]
+             ,reflectance = 1.0}]
              ,lights = [Light{ 
                 lpos =  R.fromListUnboxed (R.ix1 3) [20,10,0]
                 ,lcolor = (255,255,255)
@@ -139,8 +139,8 @@ cameraRay3 r@Camera{cdir = dir, cpoint = pnt, cup =up} (maxX,maxY) x y =
 main :: IO ()
 main = do
     let path = "test.bmp"
-    let widht = 50
-    let height = 50
+    let widht = 200
+    let height = 200
     putStrLn $ "Starting trace on a " ++ show widht ++ "x" ++ show height ++ " ..."
     let w = dummyWorld 
     let c = dummyCam
@@ -163,7 +163,7 @@ main = do
 --      
 
 multPixtraceFunc::(R.DIM2 -> Color) -> R.DIM2 -> Int -> Int -> World -> Camera -> Color
-multPixtraceFunc f (R.Z R.:. ax R.:. ay) widht height w c =  foldr1 (avrageCol) [traceFunc f (R.Z R.:. ax R.:. ay) widht height w c | _<-[1..20]]
+multPixtraceFunc f (R.Z R.:. ax R.:. ay) widht height w c =  foldr1 (avrageCol) [traceFunc f (R.Z R.:. ax R.:. ay) widht height w c | _<-[1..5]]
 
 avrageCol::Color -> Color-> Color
 --avrageCol (0,0,0) (a1,b1,c1) = (a1,b1,c1)
@@ -188,7 +188,8 @@ trace w r@Ray{dir = dir', point = pnt} d = do
                     let emittance = color obj
                     let norm = calcNormal obj hitp
                     lightIntens <- intersectLights pnt hitp norm w
-                    newDir <- getSampledBiased norm 0 --rand ---randVec norm 3.14 rand 
+                    newDir <- getSampledBiased norm 0 --rand ---randVec norm 3.14 rand
+                    --putStrLn $ show newDir
                     cos_theta <- dotProd (normalize newDir) norm
                     let brdf = 2 * (reflectance obj) * cos_theta
                     --putStrLn $ show newDir
@@ -227,7 +228,7 @@ getSampledBiased dir pow  = do
     let (rand2',_) = randomR (-1000,1000) randG2 -- <- undefined
     let rand2 = (rand2'/1000)
     let randV =  R.fromListUnboxed (R.ix1 2) [rand,rand2]
-    let randV2 = R.fromListUnboxed (R.ix1 2) [(randV R.! (R.Z R.:. 0))*2.0*pi, (randV R.! (R.Z R.:. 0))**(1.0/(pow+1.0))]
+    let randV2 = R.fromListUnboxed (R.ix1 2) [(randV R.! (R.Z R.:. 0))*2.0*pi, (randV R.! (R.Z R.:. 1))**(1.0/(pow+1.0))]
     let onemius = sqrt (1.0 - ((randV2 R.! (R.Z R.:. 1))*(randV2 R.! (R.Z R.:. 1))))
     --setStdGen randG3
     return $ (R.computeUnboxedS $ R.zipWith (+) ( R.zipWith (+) (R.map ((cos (randV2 R.! (R.Z R.:. 0)) * onemius)*) o1)
