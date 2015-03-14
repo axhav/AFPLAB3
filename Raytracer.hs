@@ -81,19 +81,16 @@ dummyPlane3 = Plane {
 dummyObj = Object{shape =dummySphere
              , color=(0,255,0) 
              ,reflectance = 0
-             ,shininess=16
              }
            
             
 dummyWorld :: World
 dummyWorld = World{items = [Object{shape =dummySphere
              , color=(0,0,255)  
-             ,reflectance = 0
-             ,shininess=16},
+             ,reflectance = 0},
              Object{shape =dummyPlane
              , color= (150,0,0)  
-             ,reflectance = 1.0
-             ,shininess= 16}]
+             ,reflectance = 1.0}]
              ,lights = [Light{ 
                 lpos =  R.fromListUnboxed (R.ix1 3) [20,10,0]
                 ,lcolor = (255,255,255)
@@ -108,9 +105,9 @@ dummyWorld2 = addLightToWorld (createLight (6.0,0.0,0.0) (t2c White))
     --(addLightToWorld (createLight (4.0,0.0,0.0) (t2c White))
     --(addLightToWorld (createLight (2.0,0,2.0) (t2c White))
     (addLightToWorld (createLight (2.0,0,-2.0) (t2c White))
-    (addObjectToWorld (createPlane vUp vDown (0.0,150.0,0.0) 1 16)
-    (addObjectToWorld (createSphere 2.0 (10.0,0.0,0.0) (t2c Blue) 0 16)
-    (addObjectToWorld (createPlane vDown vUp (150.0,0.0,0.0) 1 16) emptyWorld )))) --))
+    (addObjectToWorld (createPlane vUp vDown (0.0,150.0,0.0) 1)
+    (addObjectToWorld (createSphere 2.0 (10.0,0.0,0.0) (t2c Blue) 0)
+    (addObjectToWorld (createPlane vDown vUp (150.0,0.0,0.0) 1) emptyWorld )))) --))
      
     
 
