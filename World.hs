@@ -194,12 +194,11 @@ createSphere rad (x,y,z) col ref shin = Object{ shape=Sphere{
     }
 
 -- | Constructor function to go from Repa array to an Sphere 
-v2Sphere::DoubleVector ->DoubleVector ->Double -> Double -> Double-> Object
+v2Sphere::DoubleVector ->Color ->Double -> Double -> Double-> Object
 v2Sphere pos colorIn rad ref shin = Object{ shape=Sphere{
     spos =  pos
     ,radius = rad}
-    ,color = (colorIn R.! (R.Z R.:. 0),
-        colorIn R.! (R.Z R.:. 1),colorIn R.! (R.Z R.:. 2))
+    ,color = colorIn
     , reflectance = (clamp ref 0.0 1.0)
     ,shininess = shin
     }
@@ -207,17 +206,16 @@ v2Sphere pos colorIn rad ref shin = Object{ shape=Sphere{
 -- | Constructor function to create a plane using the simpler types of vectors 
 createPlane ::(Double, Double , Double) ->(Double, Double , Double)
                                            -> Color -> Double ->Double -> Object
-createPlane (x,y,z) (nx,ny,nz) (col1,col2,col3) ref shin =(v2Plaine 
+createPlane (x,y,z) (nx,ny,nz) colIn ref shin =(v2Plaine 
             (R.fromListUnboxed (R.ix1 3) [x,y,z]) ( R.fromListUnboxed (R.ix1 3)
-            [nx,ny,nz]) (R.fromListUnboxed (R.ix1 3)[col1,col2,col3]) ref shin)
+            [nx,ny,nz]) colIn ref shin)
 
 -- | Constructor function to go from Repa array to an Plane 
-v2Plaine::DoubleVector ->DoubleVector ->DoubleVector -> Double->Double -> Object
+v2Plaine::DoubleVector ->DoubleVector ->Color -> Double->Double -> Object
 v2Plaine pposIn pnormalIn colorIn refIn shin = Object{ shape=Plane{
                             ppos =  pposIn
                             ,pnormal = pnormalIn}
-                            ,color = (colorIn R.! (R.Z R.:. 0),
-                              colorIn R.! (R.Z R.:. 1),colorIn R.! (R.Z R.:. 2))
+                            ,color = colorIn
                             , reflectance = clamp refIn 0.0 1.0
                             ,shininess = shin
                             }

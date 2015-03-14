@@ -55,8 +55,6 @@ cameraRay r@Camera{cdir = dir, cpoint = pnt, cup =up, fov= fov'}
         normalize(R.computeUnboxedS(R.zipWith (+) pnt imagePoint)), point = pnt}  
             where u = crossProd dir up
                   v = crossProd u dir
-                  halfWidth = 0.5--200
-                  halfHeight = 1.0 --200
                   viewPlaneHalfWith = tan fov' --(pi/4.0)
                   aspectRatio = (fromIntegral maxX')/(fromIntegral maxY')
                   viewPlaneHalfHeight = viewPlaneHalfWith * aspectRatio

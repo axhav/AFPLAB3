@@ -26,7 +26,7 @@ library
 executable Repa-trace
   main-is:             Preview.hs
   other-extensions:    TypeOperators
-  build-depends:       base >=4.7 && <4.8, repa >=3.3 && <3.4, mtl >=2.1 && <2.2, repa-io >=3.3 && <3.4, random >=1.0 && <1.1, time >=1.4 && <1.5, Repa-trace
+  build-depends:       base >=4.7 && <4.8, repa >=3.3 && <3.4, mtl >=2.1 && <2.2, repa-io >=3.3 && <3.4, random >=1.0 && <1.1, time >=1.4 && <1.5, Repa-trace,  repa-algorithms 
   hs-source-dirs:      executable 
   default-language:    Haskell2010
     
