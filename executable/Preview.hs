@@ -17,5 +17,5 @@ main = do
     t1 <- getCurrentTime
     putStrLn $ "Trace is done (in "++ show (diffUTCTime t1 t0) ++") creating image named " ++ "test.bmp"
     where
-       obj = [EntO (createPlane vUp vDown (0.0,150.0,0.0) 1),EntO (createSphere 2.0 (10.0,0.0,0.0) (t2c Blue) 0 ),EntL (createLight (6.0,0.0,0.0) (t2c White))]
+       obj = [EntO (createPlane vUp vDown (0.0,150.0,0.0) 1 0),EntO (createSphere 2.0 (10.0,0.0,0.0) (t2c Blue) 0 16),EntL (createLight (6.0,0.0,0.0) (t2c White))]
     
