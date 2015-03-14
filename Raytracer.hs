@@ -155,7 +155,18 @@ cameraRay3 r@Camera{cdir = dir, cpoint = pnt, cup =up} (maxX,maxY) x y =
                   dist =(0.5 / (tan (90.0/2.0)))
                   pixelDir = (R.zipWith (+) (R.zipWith (+) (R.map (dist*) dir) (R.map ((0.5 - (fromIntegral y)/( fromIntegral(maxY -1)))*) cr) ) (R.map ((0.5 - (fromIntegral x)/( fromIntegral(maxX -1)))*) cu))
                   
-   
+main :: IO ()
+main = do
+    let hight = 100
+    let with = 100
+    putStrLn $ "Starting trace on a " ++ show with ++ "x" ++ show hight ++ " ..."
+    t0 <- getCurrentTime
+    (trace2BMP obj dummyCam (with,hight) 2 "test.bmp")
+    t1 <- getCurrentTime
+    putStrLn $ "Trace is done (in "++ show (diffUTCTime t1 t0) ++") creating image named " ++ "test.bmp"
+    where
+       obj = [EntO (createPlane vUp vDown (0.0,150.0,0.0) 1 16),EntO (createSphere 2.0 (10.0,0.0,0.0) (t2c Blue) 0 16),EntL (createLight (6.0,0.0,0.0) (t2c White))]
+    
 trace2Array::[Entity]-> Camera ->(Int,Int)-> Int -> R.Array R.U R.DIM2 Color
 trace2Array ent camera (widht,height) bounses = finalasDouble
     where
