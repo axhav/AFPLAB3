@@ -13,7 +13,7 @@ main :: IO ()
 main = do
     putStrLn $ "Starting trace on a " ++ show 100 ++ "x" ++ show 100 ++ " ..."
     t0 <- getCurrentTime
-    (trace2BMP obj dummyCam (100,200) 2 "test.bmp")
+    (trace2BMP obj dummyCam (100,500) 2 "test.bmp")
     t1 <- getCurrentTime
     putStrLn $ "Trace is done (in "++ show (diffUTCTime t1 t0) ++") creating image named " ++ "test.bmp"
     where

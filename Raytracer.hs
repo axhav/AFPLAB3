@@ -45,15 +45,15 @@ cameraRay r@Camera{cdir = dir, cpoint = pnt, cup =up, fov= fov'} (maxX',maxY') x
      Ray{dir= normalize( R.computeUnboxedS(R.zipWith (+) pnt imagePoint)), point = pnt}  
             where u = crossProd dir up
                   v = crossProd u dir
-                  halfWidth = 1.0--200
+                  halfWidth = 0.5--200
                   halfHeight = 1.0 --200
                   viewPlaneHalfWith = tan fov' --(pi/4.0)
                   aspectRatio = (fromIntegral maxX')/(fromIntegral maxY')
                   viewPlaneHalfHeight = viewPlaneHalfWith * aspectRatio
                   viewPlaneBottomLeftPoint = R.zipWith (-) ( R.zipWith (-) (dir) (R.map ( viewPlaneHalfHeight* ) v))  (R.map ( viewPlaneHalfWith* ) u)
-                  xIncVector = R.map (*(2*halfWidth/ (fromIntegral maxX'))) v
-                  yIncVector = R.map (*(2*halfHeight/ (fromIntegral maxY'))) u
-                  imagePoint = R.zipWith (+) (R.zipWith (+) viewPlaneBottomLeftPoint (R.map ( (fromIntegral x)* ) xIncVector)) (R.map ( ( fromIntegral y)* ) yIncVector)
+                  yIncVector = R.map (*(2*viewPlaneHalfHeight/ (fromIntegral maxX'))) v
+                  xIncVector = R.map (*(2*viewPlaneHalfWith/ (fromIntegral maxY'))) u
+                  imagePoint = R.zipWith (+) (R.zipWith (+) viewPlaneBottomLeftPoint (R.map ( (fromIntegral y)* ) xIncVector)) (R.map ( ( fromIntegral x)* ) yIncVector)
                   
    
 trace2Array::[Entity]-> Camera ->(Int,Int)-> Int -> R.Array R.U R.DIM2 Color
