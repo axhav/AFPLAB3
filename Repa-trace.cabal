@@ -21,7 +21,9 @@ library
   exposed-modules:     Raytracer
   other-modules:       Vector ,World,Ray
   build-depends:       base >= 4.7 && < 4.8, repa >=3.3 && <3.4, mtl >=2.1 && <2.2, repa-io >=3.3 && <3.4, random >=1.0 && <1.1, time >=1.4 && <1.5
-
+  ghc-options:         -O -threaded -rtsopts 
+  
+  
 executable Repa-trace
   main-is:             Preview.hs
   other-extensions:    TypeOperators
