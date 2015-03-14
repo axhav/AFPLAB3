@@ -152,26 +152,13 @@ cameraRay3 r@Camera{cdir = dir, cpoint = pnt, cup =up} (maxX,maxY) x y =
                   
 main :: IO ()
 main = do
-    
-    let ents = createWorld [EntO (createPlane vUp vDown (0.0,150.0,0.0) 1),EntO (createSphere 2.0 (10.0,0.0,0.0) (t2c Blue) 0 ),EntL (createLight (6.0,0.0,0.0) (t2c White))]
-    let w2 = execState ents emptyWorld
-    let path = "test.bmp"
-    let widht = 100
-    let height = 100
-    putStrLn $ "Starting trace on a " ++ show widht ++ "x" ++ show height ++ " ..."
-    let w = dummyWorld2 
-    let c = dummyCam
+    putStrLn $ "Starting trace on a " ++ show 100 ++ "x" ++ show 100 ++ " ..."
     t0 <- getCurrentTime
-    let indexs = [(0,0,0)| x<- [0..(widht-1)], y <- [0..(height-1)] ]
-    let image = R.fromListUnboxed (R.ix2 widht height) indexs
-    let finalasDouble = R.computeUnboxedS $ R.traverse image id (\f  x ->  multPixtraceFunc  f x widht height w2 c ) 
-    let final = R.computeUnboxedS $ R.map convertColtoFCol finalasDouble
-    
-    writeImageToBMP ("./"++path) final
+    (trace2BMP obj dummyCam (100,100) "test.bmp")
     t1 <- getCurrentTime
-    
-    putStrLn $ "Trace is done (in "++ show (diffUTCTime t1 t0) ++") creating image named " ++ show path
-
+    putStrLn $ "Trace is done (in "++ show (diffUTCTime t1 t0) ++") creating image named " ++ "test.bmp"
+    where
+       obj = [EntO (createPlane vUp vDown (0.0,150.0,0.0) 1),EntO (createSphere 2.0 (10.0,0.0,0.0) (t2c Blue) 0 ),EntL (createLight (6.0,0.0,0.0) (t2c White))]
     
 trace2Array::[Entity]-> Camera ->(Int,Int)-> R.Array R.U R.DIM2 Color
 trace2Array ent camera (widht,height) = finalasDouble
