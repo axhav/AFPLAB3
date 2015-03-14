@@ -72,8 +72,9 @@ cameraRay r@Camera{cdir = dir, cpoint = pnt, cup =up, fov= fov'}
                   
 -- | Function that gives a traced image exported as an array of colors for
 -- further computations
-trace2Array::[Entity]-> Camera ->(Int,Int)-> Int -> R.Array R.U R.DIM2 Color
-trace2Array ent camera (widht,height) bounses = finalasDouble
+trace2Array::[Entity]-> Camera ->(Int,Int)-> Int ->R.Array R.U R.DIM2 FinalColor
+trace2Array ent camera (widht,height) bounses =
+                        R.computeUnboxedS $ R.map convertColtoFCol finalasDouble
     where
      ents = createWorld ent
      ents' = execState ents emptyWorld
@@ -82,12 +83,12 @@ trace2Array ent camera (widht,height) bounses = finalasDouble
      finalasDouble = R.computeUnboxedS $ R.traverse image id 
         (\f  x -> multPixtraceFunc  f x widht height ents' camera bounses) 
 
+    
 -- | Function to directly export a traced image to a bmp
 trace2BMP::[Entity]-> Camera ->(Int,Int)-> Int -> String -> IO()
 trace2BMP ent camera (widht,height) bounses fName  = do
     let image = trace2Array ent camera (widht,height) bounses
-    let final = R.computeUnboxedS $ R.map convertColtoFCol image
-    writeImageToBMP ("./"++fName) final
+    writeImageToBMP ("./"++fName) image
 
 -- | Helperfunction to sample each pixel 5 times 
 multPixtraceFunc::(R.DIM2 -> Color) -> R.DIM2 -> Int -> Int -> World -> Camera

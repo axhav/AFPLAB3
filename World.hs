@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeOperators #-}
 module World (
-World(..),Color, Object(..), Shape (..),calcNormal,
+World(..),FinalColor,Color, Object(..), Shape (..),calcNormal,
 Light(..),cmul,colRound,cadd,convertColtoFCol
 
 -- Creation functions
