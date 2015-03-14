@@ -11,7 +11,7 @@ import qualified Data.Array.Repa.Algorithms.Matrix as R
 dummyCam :: Camera
 dummyCam = createCamera (1,0,0) (0,0,0) (0,1,0) (45)
               
---| This is the example 
+-- | This is the example 
 main :: IO ()
 main = do
     let hight = 500
