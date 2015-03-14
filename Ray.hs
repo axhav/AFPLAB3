@@ -43,12 +43,12 @@ intersectWorld ray@Ray{dir = d, point= o} w'@World{items = w} = do
 -- | Calculates Shadowrays returns a combinded color of the visible lights 
 -- and an intensity factor of how much light the point is exposed to
 intersectLights :: DoubleVector -> DoubleVector -> DoubleVector -> World 
-                                                        -> IO(Double, Color) 
-intersectLights cP hitp norm w@World{lights = []} = return (0,(0,0,0))
-intersectLights cP hitp norm w@World{items = o, lights = (l:ls)} = do
-    res <- intersectLight cP hitp norm w l
+                                                 ->  Double -> IO(Double, Color) 
+intersectLights cP hitp norm w@World{lights = []} _ = return (0,(0,0,0))
+intersectLights cP hitp norm w@World{items = o, lights = (l:ls)} shin= do
+    res <- intersectLight cP hitp norm w l shin
 
-    res2 <-intersectLights cP hitp norm (World{items = o , lights = ls})
+    res2 <-intersectLights cP hitp norm (World{items = o , lights = ls}) shin
     let fres =(((fst res)+fst(res2)) /2.0,(cadd (snd res)(snd res2)))
     return $ fres
 
@@ -56,9 +56,9 @@ intersectLights cP hitp norm w@World{items = o, lights = (l:ls)} = do
 -- Calculates the shadowray for one specific light and returns the color of the 
 -- light and the intensity
 intersectLight ::DoubleVector -> DoubleVector -> DoubleVector -> World -> Light
-                                                            -> IO(Double, Color)
+                                                   -> Double-> IO(Double, Color)
 intersectLight 
-    cPos hitp norm w@World{items = o} l@Light{lpos = pos, lcolor=lc}= do
+    cPos hitp norm (w@World{items = o}) l@Light{lpos = pos, lcolor=lc} shin = do
     let directionToL = R.computeUnboxedS $ ( R.zipWith (-)  pos hitp )
     let cPos2htp       = R.computeUnboxedS $ ( R.zipWith (-) cPos hitp)
     let dir'= normalize directionToL
@@ -67,7 +67,7 @@ intersectLight
         Nothing -> do
                    let halfDir' = fun directionToL  cPos2htp
                    specang1' <- dotProd halfDir' norm
-                   let temp' = (maximum [specang1', 0])**16
+                   let temp' = (maximum [specang1', 0])**shin
                    return(temp',cmul lc temp') 
         Just (obj,hitpoint) -> do
             let llenght = vLength directionToL
@@ -77,7 +77,7 @@ intersectLight
                 False -> do
                     let halfDir = fun directionToL cPos2htp     
                     specang1 <- dotProd halfDir norm
-                    let temp = (maximum [specang1, 0])**16
+                    let temp = (maximum [specang1, 0])**shin
                     return(temp,cmul lc temp)
     where fun a b = (normalize $ R.computeUnboxedS $ R.zipWith (+) a b)
           fun2 a b = ( R.computeUnboxedS $ R.zipWith (-) a b)

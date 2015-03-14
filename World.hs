@@ -62,6 +62,7 @@ data Object = Object {
                     shape :: Shape
                     ,color :: Color
                     ,reflectance :: Double
+                    ,shininess::Double
                     }
     deriving (Show)
 
@@ -183,40 +184,42 @@ addLightToWorld :: Light -> World -> World
 addLightToWorld l w@World{lights= ls} = w{lights= (ls ++ [l]) }
 
 -- | Constructor to create a sphere using the simpler type of vectors 
-createSphere :: Double -> (Double, Double , Double) -> Color -> Double -> Object
-createSphere rad (x,y,z) col ref = Object{ shape=Sphere{
+createSphere :: Double -> (Double, Double , Double) -> Color -> Double -> Double-> Object
+createSphere rad (x,y,z) col ref shin = Object{ shape=Sphere{
     spos =  R.fromListUnboxed (R.ix1 3) [x,y,z]
     ,radius = rad}
     ,color = col
-    , reflectance = (clamp ref 0.0 1.0)
+    ,shininess = shin
+    ,reflectance = (clamp ref 0.0 1.0)
     }
 
 -- | Constructor function to go from Repa array to an Sphere 
-v2Sphere::DoubleVector ->DoubleVector ->Double -> Double ->  Object
-v2Sphere pos colorIn rad ref = Object{ shape=Sphere{
+v2Sphere::DoubleVector ->DoubleVector ->Double -> Double -> Double-> Object
+v2Sphere pos colorIn rad ref shin = Object{ shape=Sphere{
     spos =  pos
     ,radius = rad}
     ,color = (colorIn R.! (R.Z R.:. 0),
         colorIn R.! (R.Z R.:. 1),colorIn R.! (R.Z R.:. 2))
     , reflectance = (clamp ref 0.0 1.0)
-
+    ,shininess = shin
     }
 
 -- | Constructor function to create a plane using the simpler types of vectors 
 createPlane ::(Double, Double , Double) ->(Double, Double , Double)
-                                                 -> Color -> Double -> Object
-createPlane (x,y,z) (nx,ny,nz) (col1,col2,col3) ref =(v2Plaine 
+                                           -> Color -> Double ->Double -> Object
+createPlane (x,y,z) (nx,ny,nz) (col1,col2,col3) ref shin =(v2Plaine 
             (R.fromListUnboxed (R.ix1 3) [x,y,z]) ( R.fromListUnboxed (R.ix1 3)
-            [nx,ny,nz]) (R.fromListUnboxed (R.ix1 3)[col1,col2,col3]) ref)
+            [nx,ny,nz]) (R.fromListUnboxed (R.ix1 3)[col1,col2,col3]) ref shin)
 
 -- | Constructor function to go from Repa array to an Plane 
-v2Plaine::DoubleVector -> DoubleVector -> DoubleVector -> Double -> Object
-v2Plaine pposIn pnormalIn colorIn refIn = Object{ shape=Plane{
+v2Plaine::DoubleVector ->DoubleVector ->DoubleVector -> Double->Double -> Object
+v2Plaine pposIn pnormalIn colorIn refIn shin = Object{ shape=Plane{
                             ppos =  pposIn
                             ,pnormal = pnormalIn}
                             ,color = (colorIn R.! (R.Z R.:. 0),
                               colorIn R.! (R.Z R.:. 1),colorIn R.! (R.Z R.:. 2))
                             , reflectance = clamp refIn 0.0 1.0
+                            ,shininess = shin
                             }
                             
 -- | Constructor function to create a light using the simpler types of vectors 
