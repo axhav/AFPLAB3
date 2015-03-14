@@ -117,7 +117,7 @@ intersectP
 -- not 
 intersectB :: Ray -> Object -> IO Bool
 intersectB 
-    ray@Ray{dir=d , point=o} obj@Object{shape = s@Sphere{spos=c, radius = r}} = do 
+    ray@Ray{dir=d , point=o} obj@Object{shape = s@Sphere{spos=c, radius = r}}=do 
     let sub' = R.computeUnboxedS $ R.zipWith (-) o c
     let d' = normalize d
     s1' <- (dotProd d' sub')
@@ -135,7 +135,7 @@ intersectB
                         False -> return False
                         True -> return True
 intersectB 
-    ray@Ray{dir=d , point=o} obj@Object{shape = s@Plane{ppos=c, pnormal = n}} = do 
+    ray@Ray{dir=d , point=o} obj@Object{shape = s@Plane{ppos=c, pnormal = n}}=do 
     let d' = normalize d
     s1 <- (dotProd d' n)
     case s1 /= 0  of
@@ -151,7 +151,8 @@ intersectB
 -- with bad performence only used for testing and reference imagry
 phongShader :: Ray -> World -> Color -> DoubleVector -> Double -> IO Color
 phongShader ray@Ray{dir=d, point=p} 
-    w@World{lights=(l@Light{lpos = lpos1, lcolor = col}:ls)} (r,g,b) norm shadow = do
+    w@World{lights=(l@Light{lpos = lpos1, lcolor = col}:ls)} 
+   (r,g,b) norm shadow = do
     let ambient = ( r*0.1,g*0.1,b*0.1)
     let specular = col
     let lightDir = R.computeUnboxedS $ R.zipWith (-) lpos1 p

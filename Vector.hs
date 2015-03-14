@@ -31,14 +31,20 @@ crossProd v1 v2 = R.fromListUnboxed (R.ix1 3)
 -- | Orthogonal projection of a double vector    
 ortho :: DoubleVector -> DoubleVector
 ortho v = case (v R.! (R.Z R.:. 0)) >(v R.! (R.Z R.:. 2)) of
-    True -> R.fromListUnboxed (R.ix1 3) [-(v R.! (R.Z R.:. 1)),v R.! (R.Z R.:. 0),0.0]
-    False ->  R.fromListUnboxed (R.ix1 3) [0.0,-(v R.! (R.Z R.:. 2)),v R.! (R.Z R.:. 1)]
+    True -> 
+        R.fromListUnboxed (R.ix1 3) 
+            [-(v R.! (R.Z R.:. 1)),v R.! (R.Z R.:. 0),0.0]
+    False ->  
+        R.fromListUnboxed (R.ix1 3) 
+            [0.0,-(v R.! (R.Z R.:. 2)),v R.! (R.Z R.:. 1)]
 
 -- | Function to calculate the distance between two points represented as double
 -- vectors
 dist :: Point -> Point -> Double 
 dist v1 v2 = sqrt $ (pow2 0) + (pow2 1) + (pow2 2) 
-    where pow2 i = (((v1 R.! (R.Z R.:. i) ) - (v2 R.! (R.Z R.:. i)))*((v1 R.! (R.Z R.:. i)) - (v2 R.! (R.Z R.:. i))))
+    where pow2 i = (((v1 R.! (R.Z R.:. i) ) - 
+            (v2 R.! (R.Z R.:. i)))*
+            ((v1 R.! (R.Z R.:. i)) - (v2 R.! (R.Z R.:. i))))
 
 -- | Function to get the index of the shortest point in a list of points
 -- calculated from one point
