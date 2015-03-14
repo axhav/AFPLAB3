@@ -1,4 +1,11 @@
 {-# LANGUAGE TypeOperators #-}
+module Raytracer (
+    module World
+    ,createCamera
+    ,trace2Array
+    ,trace2BMP
+    ,Camera
+) where
 import Control.Monad.State
 import Control.Applicative
 import System.IO.Unsafe
