@@ -36,23 +36,27 @@ import Vector
 import Data.Word
 import Control.Monad.State.Lazy
 
-
-type Color = (Double,Double,Double)--R.Array R.U (R.Z R.:. Int) Word8
+-- | Color type 
+type Color = (Double,Double,Double)
+-- | Color type that is compatible with the Repa-IO functions
 type FinalColor = (Word8,Word8,Word8)
 
+-- | Textual interface for some standard colors 
 data TextColor = Red | Blue | Green | Black | White
 
-
+-- | Datatype managing the world
 data World = World {
     items :: [Object]
     ,lights :: [Light]
     }
+
+-- | A colective type for entitys that can be added into the world 
 data Entity =  EntO Object | EntL Light
 
-
+-- | The world state monad
 type WorldWrapper = State World Entity  
 
-
+-- | Datatype displaying visible objects  
 data Object = Object {
                     shape :: Shape
                     ,color :: Color
@@ -60,6 +64,7 @@ data Object = Object {
                     }
     deriving (Show)
 
+-- | datatype for the shapes of objects that can be displayed
 data Shape = 
         Sphere {
         spos :: DoubleVector
@@ -76,63 +81,86 @@ data Light = Light{
     ,lcolor:: Color
     }
     
-    
+-- | Function for calculating the normal at a specific point
 calcNormal :: Object -> DoubleVector -> DoubleVector
 calcNormal o@Object{shape =s@Sphere{spos = pos}} pnt = sphereNormal s pnt
 calcNormal o@Object{shape =s@Plane{pnormal = norm}} _ = norm 
-    
+
+-- | Heplerfunction for calculating the shape of a sphere
 sphereNormal :: Shape -> DoubleVector -> DoubleVector
 sphereNormal s@Sphere{spos= pos} pnt = normalize $ 
                                     R.computeUnboxedS $ R.zipWith (-)  pnt pos
 
+                                    
+                                    
+-- | Color management functions
+
+-- | Color addition function 
 cadd :: Color -> Color -> Color
 cadd (r1,g1,b1) (r2,g2,b2) = (r1 + r2,g1 + g2,b1 + b2)
 
+-- | Color multiplication function
 cmul :: Color -> Double -> Color
 cmul (r,g,b) d = (r*d,g*d,b*d)
 
+-- | Helper function to convert a color of type Double to Word8
 colRound :: Double -> Word8
 colRound d | d >= 255.0 = 255
            | d <= 0.0 = 0
            | otherwise = round d
            
+-- | Function to convert a color of type Double to Word8
 convertColtoFCol :: Color -> FinalColor 
 convertColtoFCol (r,g,b) = (colRound r, colRound g, colRound b)
 
-
--- |Constructor Functions
-
--- Standard Array functions
-vUp :: (Double,Double,Double)
-vUp = (0.0,1.0,0.0)
-
-vDown :: (Double,Double,Double)
-vDown = (0.0,-1.0,0.0)
-
-vForward :: (Double,Double,Double)
-vForward = (1.0,0.0,0.0)
-
-vBackward :: (Double,Double,Double)
-vBackward = (-1.0,0.0,0.0)
-
-vRight:: (Double,Double,Double)
-vRight = (1.0,0.0,1.0)
-
-vLeft :: (Double,Double,Double)
-vLeft = (0.0,0.0,-1.0)
-
--- Color conviniece functions
-
+-- | Function to convert the text color interface to an actual color
 t2c :: TextColor -> Color
 t2c Red = (255.0,0.0,0.0)
 t2c Green = (0.0,255.0,0.0)
 t2c Blue = (0.0,0.0,255.0)
 t2c Black = (0.0,0.0,0.0)
 t2c White = (255.0,255.0,255.0)
+
 --
+
+-- |Constructor Functions
+
+-- Standard Array functions
+-- | A Up Vector for the simple constructors
+vUp :: (Double,Double,Double)
+vUp = (0.0,1.0,0.0)
+
+-- | A Down Vector for the simple constructors
+vDown :: (Double,Double,Double)
+vDown = (0.0,-1.0,0.0)
+
+-- | A Forward Vector for the simple constructors
+vForward :: (Double,Double,Double)
+vForward = (1.0,0.0,0.0)
+
+-- | A Backward Vector for the simple constructors
+vBackward :: (Double,Double,Double)
+vBackward = (-1.0,0.0,0.0)
+
+-- | A Right Vector for the simple constructors
+vRight:: (Double,Double,Double)
+vRight = (1.0,0.0,1.0)
+
+-- | A Left Vector for the simple constructors
+vLeft :: (Double,Double,Double)
+vLeft = (0.0,0.0,-1.0)
 
 
 -- | World Construction
+
+-- | Constrictor function to create an empty world 
+emptyWorld :: World
+emptyWorld = World {
+    items = []
+    ,lights = []
+    }
+
+-- | Function to create a world from a list of entitys
 createWorld::[Entity] -> State World ()
 createWorld (e:[]) = createObj e
 createWorld (e:el) =  do
@@ -140,24 +168,20 @@ createWorld (e:el) =  do
     createWorld el
      
 
-
+-- | Function to add an object to the world state monad
 createObj :: Entity -> State World ()
 createObj (EntL e) = modify (addLightToWorld e)
 createObj (EntO e) = modify (addObjectToWorld e)
 
-emptyWorld :: World
-emptyWorld = World {
-    items = []
-    ,lights = []
-    }
-    
+-- | Function to add an object to an existing world
 addObjectToWorld :: Object -> World -> World
 addObjectToWorld o w@World{items= i} = w{items= (i ++ [o]) }
 
+-- | Function to add a light to an existing world
 addLightToWorld :: Light -> World -> World
 addLightToWorld l w@World{lights= ls} = w{lights= (ls ++ [l]) }
 
-
+-- | Constructor to create a sphere using the simpler type of vectors 
 createSphere :: Double -> (Double, Double , Double) -> Color -> Double -> Object
 createSphere rad (x,y,z) col ref = Object{ shape=Sphere{
     spos =  R.fromListUnboxed (R.ix1 3) [x,y,z]
@@ -166,13 +190,7 @@ createSphere rad (x,y,z) col ref = Object{ shape=Sphere{
     , reflectance = (clamp ref 0.0 1.0)
     }
 
-
---clamp a max min = maximum [minimum [ref,max],min]
-clamp:: Double -> Double -> Double -> Double
-clamp a min max | a < min = min
-                | a > max = max
-                | otherwise = a
-
+-- | Constructor function to go from Repa array to an Sphere 
 v2Sphere::DoubleVector ->DoubleVector ->Double -> Double -> Object
 v2Sphere pos colorIn rad ref = Object{ shape=Sphere{
     spos =  pos
@@ -182,6 +200,14 @@ v2Sphere pos colorIn rad ref = Object{ shape=Sphere{
     , reflectance = (clamp ref 0.0 1.0)
     }
 
+-- | Constructor function to create a plane using the simpler types of vectors 
+createPlane ::(Double, Double , Double) ->(Double, Double , Double)
+                                                    -> Color -> Double -> Object
+createPlane (x,y,z) (nx,ny,nz) (col1,col2,col3) ref =(v2Plaine 
+            (R.fromListUnboxed (R.ix1 3) [x,y,z]) ( R.fromListUnboxed (R.ix1 3)
+            [nx,ny,nz]) (R.fromListUnboxed (R.ix1 3)[col1,col2,col3]) ref)
+
+-- | Constructor function to go from Repa array to an Plane 
 v2Plaine::DoubleVector -> DoubleVector -> DoubleVector -> Double -> Object
 v2Plaine pposIn pnormalIn colorIn refIn = Object{ shape=Plane{
                             ppos =  pposIn
@@ -190,22 +216,23 @@ v2Plaine pposIn pnormalIn colorIn refIn = Object{ shape=Plane{
                               colorIn R.! (R.Z R.:. 1),colorIn R.! (R.Z R.:. 2))
                             , reflectance = clamp refIn 0.0 1.0
                             }
-
-createPlane ::(Double, Double , Double) ->(Double, Double , Double)
-                                                    -> Color -> Double -> Object
-createPlane (x,y,z) (nx,ny,nz) (col1,col2,col3) ref =(v2Plaine 
-            (R.fromListUnboxed (R.ix1 3) [x,y,z]) ( R.fromListUnboxed (R.ix1 3)
-            [nx,ny,nz]) (R.fromListUnboxed (R.ix1 3)[col1,col2,col3]) ref)
-           
+                            
+-- | Constructor function to create a light using the simpler types of vectors 
+createLight ::(Double, Double , Double) -> Color -> Light
+createLight (x,y,z) (col1,col2,col3) = (v2Light
+                        (R.fromListUnboxed (R.ix1 3)
+                        [x,y,z]) (R.fromListUnboxed (R.ix1 3)[col1,col2,col3]))
+          
+-- | Constructor function to go from Repa array to an light           
 v2Light::DoubleVector -> DoubleVector -> Light
 v2Light pos colorIn =  Light{
     lpos = pos
     ,lcolor = (colorIn R.! (R.Z R.:. 0),
                 colorIn R.! (R.Z R.:. 1),colorIn R.! (R.Z R.:. 2))
     }
-
-createLight ::(Double, Double , Double) -> Color -> Light
-createLight (x,y,z) (col1,col2,col3) = (v2Light
-                        (R.fromListUnboxed (R.ix1 3)
-                        [x,y,z]) (R.fromListUnboxed (R.ix1 3)[col1,col2,col3]))
     
+-- | Hepler function clamp ported from GLSL
+clamp:: Double -> Double -> Double -> Double
+clamp a min max | a < min = min
+                | a > max = max
+                | otherwise = a

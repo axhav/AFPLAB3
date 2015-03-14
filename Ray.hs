@@ -26,7 +26,8 @@ data Ray = Ray {
     deriving (Show) 
 
 
--- | Should back the first object that was intersected and the intersection point
+-- | Should back the first object that was intersected and the intersection
+-- point
 intersectWorld :: Ray -> World -> IO (Maybe (Object, DoubleVector))
 intersectWorld ray@Ray{dir = d, point= o} w'@World{items = w} = do
     let r' = Ray{ dir = normalize d, point = o }
@@ -48,16 +49,9 @@ intersectLights cP hitp norm w@World{items = o, lights = (l:ls)} = do
     res <- intersectLight cP hitp norm w l
 
     res2 <-intersectLights cP hitp norm (World{items = o , lights = ls})
-    let fres =(((fst res)+fst(res2)) /2.0,(addCol (snd res)(snd res2)))
+    let fres =(((fst res)+fst(res2)) /2.0,(cadd (snd res)(snd res2)))
     return $ fres
 
--- | convenience function to add two colors
-addCol:: Color->Color -> Color
-addCol (a,b,c) (a1,b1,c1)=(a+a1,b+b1,c+c1)    
-
--- | convenience function to multiply two colors
-mulCol::Color -> Double -> Color
-mulCol (a,b,c) m = (a*m,b*m,c*m)
 
 -- Calculates the shadowray for one specific light and returns the color of the 
 -- light and the intensity
@@ -74,7 +68,7 @@ intersectLight
                    let halfDir' = fun directionToL  cPos2htp
                    specang1' <- dotProd halfDir' norm
                    let temp' = (maximum [specang1', 0])**5
-                   return(temp',mulCol lc temp') 
+                   return(temp',cmul lc temp') 
         Just (obj,hitpoint) -> do
             let llenght = vLength directionToL
             let olenght = (vLength $ fun2 hitp hitpoint)
@@ -84,7 +78,7 @@ intersectLight
                     let halfDir = fun directionToL cPos2htp     
                     specang1 <- dotProd halfDir norm
                     let temp = (maximum [specang1, 0])**5
-                    return(temp,mulCol lc temp)
+                    return(temp,cmul lc temp)
     where fun a b = (normalize $ R.computeUnboxedS $ R.zipWith (+) a b)
           fun2 a b = ( R.computeUnboxedS $ R.zipWith (-) a b)
          
