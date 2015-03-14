@@ -73,16 +73,20 @@ dummyPlane3 = Plane {
             
 dummyObj = Object{shape =dummySphere
              , color=(0,255,0) 
-             ,reflectance = 0}
+             ,reflectance = 0
+             ,shininess=16
+             }
            
             
 dummyWorld :: World
 dummyWorld = World{items = [Object{shape =dummySphere
              , color=(0,0,255)  
-             ,reflectance = 0},
+             ,reflectance = 0
+             ,shininess=16},
              Object{shape =dummyPlane
              , color= (150,0,0)  
-             ,reflectance = 1.0}]
+             ,reflectance = 1.0
+             ,shininess= 16}]
              ,lights = [Light{ 
                 lpos =  R.fromListUnboxed (R.ix1 3) [20,10,0]
                 ,lcolor = (255,255,255)
@@ -90,22 +94,16 @@ dummyWorld = World{items = [Object{shape =dummySphere
                 lpos =  R.fromListUnboxed (R.ix1 3) [5,7,0]
                 ,lcolor = (255,255,255)
              }]
-             } {-,
-            
-             Object{shape =dummyPlane2
-             , color=(0,150,0) -- (R.fromListUnboxed (R.ix1 4) [0,0,0,0]) 
-             ,reflectance = 1000},
-             ] 
-             -}
+             }
 
 dummyWorld2 :: World 
 dummyWorld2 = addLightToWorld (createLight (6.0,0.0,0.0) (t2c White))
     --(addLightToWorld (createLight (4.0,0.0,0.0) (t2c White))
     --(addLightToWorld (createLight (2.0,0,2.0) (t2c White))
     (addLightToWorld (createLight (2.0,0,-2.0) (t2c White))
-    (addObjectToWorld (createPlane vUp vDown (0.0,150.0,0.0) 1)
-    (addObjectToWorld (createSphere 2.0 (10.0,0.0,0.0) (t2c Blue) 0 )
-    (addObjectToWorld (createPlane vDown vUp (150.0,0.0,0.0) 1) emptyWorld )))) --))
+    (addObjectToWorld (createPlane vUp vDown (0.0,150.0,0.0) 1 16)
+    (addObjectToWorld (createSphere 2.0 (10.0,0.0,0.0) (t2c Blue) 0 16)
+    (addObjectToWorld (createPlane vDown vUp (150.0,0.0,0.0) 1 16) emptyWorld )))) --))
      
     
 
@@ -152,13 +150,15 @@ cameraRay3 r@Camera{cdir = dir, cpoint = pnt, cup =up} (maxX,maxY) x y =
                   
 main :: IO ()
 main = do
-    putStrLn $ "Starting trace on a " ++ show 100 ++ "x" ++ show 100 ++ " ..."
+    let hight = 100
+    let with = 100
+    putStrLn $ "Starting trace on a " ++ show with ++ "x" ++ show hight ++ " ..."
     t0 <- getCurrentTime
-    (trace2BMP obj dummyCam (100,100) 2 "test.bmp")
+    (trace2BMP obj dummyCam (with,hight) 2 "test.bmp")
     t1 <- getCurrentTime
     putStrLn $ "Trace is done (in "++ show (diffUTCTime t1 t0) ++") creating image named " ++ "test.bmp"
     where
-       obj = [EntO (createPlane vUp vDown (0.0,150.0,0.0) 1),EntO (createSphere 2.0 (10.0,0.0,0.0) (t2c Blue) 0 ),EntL (createLight (6.0,0.0,0.0) (t2c White))]
+       obj = [EntO (createPlane vUp vDown (0.0,150.0,0.0) 1 16),EntO (createSphere 2.0 (10.0,0.0,0.0) (t2c Blue) 0 16),EntL (createLight (6.0,0.0,0.0) (t2c White))]
     
 trace2Array::[Entity]-> Camera ->(Int,Int)-> Int -> R.Array R.U R.DIM2 Color
 trace2Array ent camera (widht,height) bounses = finalasDouble
@@ -167,7 +167,7 @@ trace2Array ent camera (widht,height) bounses = finalasDouble
      ents' = execState ents emptyWorld
      indexs = [(0,0,0)| x<- [0..(widht-1)], y <- [0..(height-1)] ]
      image = R.fromListUnboxed (R.ix2 widht height) indexs
-     finalasDouble = R.computeUnboxedS $ R.traverse image id (\f  x ->  multPixtraceFunc  f x widht height ents' camera bounses ) 
+     finalasDouble = R.computeUnboxedS $ R.traverse image id (\f  x -> multPixtraceFunc  f x widht height ents' camera bounses) 
 
     
 trace2BMP::[Entity]-> Camera ->(Int,Int)-> Int -> String -> IO()
@@ -190,7 +190,7 @@ trace :: World -> Ray -> Depth -> Int-> IO Color
 trace w r@Ray{dir = dir', point = pnt} d bounses = do
     case d==bounses of
         True ->do
-            return $ (0,0,0)     -- byt 5an till dynamisk?
+            return $ (0,0,0)
         False -> do 
             test <-intersectWorld r w 
             case test of
@@ -202,7 +202,7 @@ trace w r@Ray{dir = dir', point = pnt} d bounses = do
                     newDir <- getSampledBiased norm 1
                     cos_theta' <- dotProd (normalize newDir) norm
                     let cos_theta =abs cos_theta' 
-                    let brdf' = 2 * (reflectance obj) -- * cos_theta
+                    let brdf' = 2 * (reflectance obj) 
                     let brdf = minimum [brdf', 1/pi]
                     reflCol <- trace w (Ray{dir=newDir, point = hitp}) (d+1) bounses 
                     calcFinalCol emittance reflCol brdf lightIntens
@@ -216,7 +216,9 @@ calcFinalCol (er,eg,eb) (rr,rg,rb) brf (lightInten,(lc1,lc2,lc3)) = do
     --putStrLn $ (show rb)++ "   " ++ (show eb) ++ "    " ++ show (round ((fromIntegral eb) * (light*0.8)))
     let res =(calc er rr lightInten lc1 brf,calc eg rg lightInten lc2 brf,calc eb rb lightInten lc3 brf)
     return res
-    where calc a b l lc brd = a*0.1 +l*(a*0.9+b*brd+lc*l)
+    where calc a b l lc brd = clamp (a*0.1 +l*(a*0.9+b*brd+lc*l)) 0 255
+           
+          
     
 getSampledBiased :: DoubleVector -> Double  -> IO DoubleVector -- -> StdGen
 getSampledBiased dir pow  = do

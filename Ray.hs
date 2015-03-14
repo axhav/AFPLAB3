@@ -67,7 +67,7 @@ intersectLight
         Nothing -> do
                    let halfDir' = fun directionToL  cPos2htp
                    specang1' <- dotProd halfDir' norm
-                   let temp' = (maximum [specang1', 0])**5
+                   let temp' = (maximum [specang1', 0])**16
                    return(temp',cmul lc temp') 
         Just (obj,hitpoint) -> do
             let llenght = vLength directionToL
@@ -77,7 +77,7 @@ intersectLight
                 False -> do
                     let halfDir = fun directionToL cPos2htp     
                     specang1 <- dotProd halfDir norm
-                    let temp = (maximum [specang1, 0])**5
+                    let temp = (maximum [specang1, 0])**16
                     return(temp,cmul lc temp)
     where fun a b = (normalize $ R.computeUnboxedS $ R.zipWith (+) a b)
           fun2 a b = ( R.computeUnboxedS $ R.zipWith (-) a b)
